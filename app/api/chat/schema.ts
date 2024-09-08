@@ -1,23 +1,45 @@
 import { DeepPartial } from "ai";
 import { z } from "zod";
 
-export const expenseSchema = z.object({
-  expense: z.object({
-    category: z
-      .string()
-      .describe(
-        "Category of the expense. Allowed categories: TRAVEL, MEALS, ENTERTAINMENT, OFFICE SUPPLIES, OTHER."
-      ),
-    amount: z.number().describe("Amount of the expense in USD."),
-    date: z.string().describe("Date of the expense, in dd-MMM format."),
-    details: z.string().describe("Name of the product or service."),
-    participants: z
-      .array(z.string())
-      .describe("Participants in the expense, as usernames."),
+// export const expenseSchema = z.object({
+//   expense: z.object({
+//     category: z
+//       .string()
+//       .describe(
+//         "Category of the expense. Allowed categories: TRAVEL, MEALS, ENTERTAINMENT, OFFICE SUPPLIES, OTHER."
+//       ),
+//     amount: z.number().describe("Amount of the expense in USD."),
+//     date: z.string().describe("Date of the expense, in dd-MMM format."),
+//     details: z.string().describe("Name of the product or service."),
+//     participants: z
+//       .array(z.string())
+//       .describe("Participants in the expense, as usernames."),
+//   }),
+// });
+
+// Define a new schema for the Arabic analysis
+export const arabicAnalysisSchema = z.object({
+  analysis: z.object({
+  original_sentence: z.string(),
+  transliteration: z.string(),
+  translation: z.string(),
+  tokens: z.array(z.object({
+    arabic: z.string(),
+    transliteration: z.string(),
+    translation: z.string(),
+    part_of_speech: z.string(),
+    // ... (other token properties)
+  })),
+  syntax: z.array(z.union([
+    z.object({ type: z.string(), index: z.number() }),
+    z.object({ type: z.string(), indices: z.array(z.number()) })
+  ])),
+  grammatical_notes: z.array(z.string()),
+    // ... (other properties)
   }),
 });
 
-// define a type for the partial notifications during generation
-export type PartialExpense = DeepPartial<typeof expenseSchema>["expense"];
+// define a type for the partial analysis
+export type PartialArabicAnalysis = DeepPartial<typeof arabicAnalysisSchema>["analysis"];
 
-export type Expense = z.infer<typeof expenseSchema>["expense"];
+export type ArabicAnalysis = z.infer<typeof arabicAnalysisSchema>["analysis"];

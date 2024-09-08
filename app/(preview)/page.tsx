@@ -3,149 +3,305 @@
 
 "use client";
 
-import { ObjectIcon, VercelIcon } from "@/components/icons";
 import { experimental_useObject } from "ai/react";
-import { useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { useRef, useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import Link from "next/link";
-import { Expense, expenseSchema, PartialExpense } from "@/app/api/chat/schema";
+import { arabicAnalysisSchema } from "@/app/api/chat/schema";
+import { useHotkeys } from "@/hooks/use-hotkey";
+import { Inter, Noto_Naskh_Arabic } from "next/font/google";
 
-const ExpenseView = ({ expense }: { expense: Expense | PartialExpense }) => {
+const inter = Inter({ subsets: ["latin"] });
+const notoNaskhArabic = Noto_Naskh_Arabic({ subsets: ["arabic"] });
+
+type ArabicAnalysis = {
+  original_sentence: string;
+  transliteration: string;
+  translation: string;
+  tokens: Array<{
+    arabic: string;
+    transliteration: string;
+    translation: string;
+    part_of_speech: string;
+  }>;
+  syntax: Array<
+    { type: string; index: number } | { type: string; indices: number[] }
+  >;
+  grammatical_notes: string[];
+};
+
+type RevealState =
+  | "arabic"
+  | "transliteration"
+  | "part_of_speech"
+  | "translation";
+
+const AnimatedText = ({
+  text,
+  className,
+  isArabic,
+}: {
+  text: string;
+  className?: string;
+  isArabic: boolean;
+}) => {
+  return (
+    <motion.span
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.2 }}
+      className={`${className} ${
+        isArabic ? `${notoNaskhArabic.className}` : `${inter.className} text-sm`
+      }`}
+    >
+      {text.split("").map((char, index) => (
+        <motion.span
+          key={index}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: index * 0.05 }}
+        >
+          {char}
+        </motion.span>
+      ))}
+    </motion.span>
+  );
+};
+
+const TokenView = ({
+  token,
+  revealState,
+  isFocused,
+}: {
+  token: ArabicAnalysis["tokens"][0];
+  revealState: RevealState;
+  isFocused: boolean;
+}) => {
+  const getRevealContent = () => {
+    switch (revealState) {
+      case "arabic":
+        return token.arabic;
+      case "transliteration":
+        return token.transliteration;
+      case "part_of_speech":
+        return token.part_of_speech;
+      case "translation":
+        return token.translation;
+    }
+  };
+
+  const getBadgeText = () => {
+    switch (revealState) {
+      case "arabic":
+        return "";
+      case "transliteration":
+        return "TL";
+      case "part_of_speech":
+        return "POS";
+      case "translation":
+        return "TR";
+    }
+  };
+
+  const isArabic = revealState === "arabic";
+
   return (
     <motion.div
-      className={`flex flex-row gap-2 px-4 w-full md:w-[500px] md:px-0`}
-      initial={{ opacity: 0.4 }}
-      animate={{ opacity: 1 }}
+      layout
+      className={`relative inline-flex items-center px-3 py-0.5 rounded-lg text-center overflow-hidden ${
+        isFocused
+          ? "bg-white text-black shadow-[0px_0px_1px_rgba(0,0,0,0.04),0px_1px_1px_rgba(0,0,0,0.04),0px_3px_3px_rgba(0,0,0,0.04),0px_6px_6px_rgba(0,0,0,0.04),0px_12px_12px_rgba(0,0,0,0.04),0px_24px_24px_rgba(0,0,0,0.04)]"
+          : "bg-zinc-200 text-zinc-500"
+      }`}
+      initial={false}
+      animate={{ width: "auto" }}
+      transition={{ duration: 0.4, ease: "easeInOut" }}
     >
-      <div className="flex flex-row gap-4 w-full">
-        <div className="text-zinc-400 dark:text-zinc-400 w-16">
-          {expense?.date}
-        </div>
-        <div className="text-zinc-800 dark:text-zinc-300 flex-1 capitalize flex flex-row gap-2 items-center">
-          <div>{expense?.details}</div>
-          <div className="flex flex-row gap-2 size-6">
-            {expense?.participants?.map((participant) => (
-              <img
-                className="size-full rounded-full"
-                src={`https://vercel.com/api/www/avatar?u=${participant}&s=64`}
-                alt={participant}
-              />
-            ))}
-          </div>
-        </div>
-        <div className="text-zinc-600 dark:text-zinc-300 text-xs bg-zinc-200 rounded-md flex flex-row items-center p-1 font-medium capitalize h-fit dark:bg-zinc-700 dark:text-zinc-300">
-          {expense?.category?.toLowerCase()}
-        </div>
-        <div className="text-emerald-600 dark:text-emerald-400 w-8 text-right">
-          ${expense?.amount}
-        </div>
-      </div>
+      <AnimatePresence mode="wait">
+        {!isArabic && (
+          <motion.span
+            key={revealState}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="mr-2 -ml-2 px-2 py-[0.17rem] text-xs bg-black text-white rounded-md"
+          >
+            {getBadgeText()}
+          </motion.span>
+        )}
+      </AnimatePresence>
+      <AnimatePresence mode="wait">
+        <AnimatedText
+          key={revealState}
+          text={getRevealContent()}
+          className="inline-block"
+          isArabic={isArabic}
+        />
+      </AnimatePresence>
     </motion.div>
+  );
+};
+
+const TokensContainer = ({
+  tokens,
+  revealState,
+  focusedIndex,
+}: {
+  tokens: ArabicAnalysis["tokens"];
+  revealState: RevealState;
+  focusedIndex: number;
+}) => {
+  return (
+    <div className="flex flex-wrap-reverse gap-2 justify-center">
+      {tokens
+        .slice()
+        .reverse()
+        .map((token, index) => (
+          <TokenView
+            key={index}
+            token={token}
+            revealState={index === focusedIndex ? revealState : "arabic"}
+            isFocused={index === focusedIndex}
+          />
+        ))}
+    </div>
   );
 };
 
 export default function Home() {
   const [input, setInput] = useState<string>("");
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [analysis, setAnalysis] = useState<ArabicAnalysis | null>(null);
+  const [revealState, setRevealState] = useState<RevealState>("arabic");
+  const [focusedIndex, setFocusedIndex] = useState<number>(0);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { submit, isLoading, object } = experimental_useObject({
     api: "/api/chat",
-    schema: expenseSchema,
+    schema: arabicAnalysisSchema,
     onFinish({ object }) {
       if (object != null) {
-        setExpenses((prev) => [object.expense, ...prev]);
+        setAnalysis(object.analysis);
         setInput("");
+        setFocusedIndex(object.analysis.tokens.length - 1); // Start from the rightmost token
         inputRef.current?.focus();
       }
     },
-    onError: () => {
-      toast.error("You've been rate limited, please try again later!");
+    onError: (error) => {
+      console.error("Error occurred:", error);
+      toast.error("An error occurred. Please try again later!");
     },
   });
 
-  return (
-    <div className="flex flex-row justify-center pt-20 h-dvh bg-white dark:bg-zinc-900">
-      <div className="flex flex-col justify-between gap-4">
-        <form
-          className="flex flex-col gap-2 relative items-center"
-          onSubmit={(event) => {
-            event.preventDefault();
+  useHotkeys("t", () => setRevealState("transliteration"));
+  useHotkeys("r", () => setRevealState("translation"));
+  useHotkeys("p", () => setRevealState("part_of_speech"));
 
-            const form = event.target as HTMLFormElement;
-
-            const input = form.elements.namedItem(
-              "expense"
-            ) as HTMLInputElement;
-
-            if (input.value.trim()) {
-              submit({ expense: input.value });
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (analysis) {
+        if (event.key === "ArrowLeft") {
+          setFocusedIndex((prev) => {
+            const newIndex = prev > 0 ? prev - 1 : prev;
+            if (newIndex !== prev) {
+              setRevealState("arabic");
             }
-          }}
-        >
-          <input
-            name="expense"
-            className="bg-zinc-100 rounded-md px-2 py-1.5 w-full outline-none dark:bg-zinc-700 text-zinc-800 dark:text-zinc-300 md:max-w-[500px] max-w-[calc(100dvw-32px)] disabled:text-zinc-400 disabled:cursor-not-allowed placeholder:text-zinc-400"
-            placeholder="Expense a transaction..."
-            value={input}
-            onChange={(event) => {
-              setInput(event.target.value);
-            }}
-            disabled={isLoading}
-            ref={inputRef}
-          />
-        </form>
-        <div className="flex flex-wrap gap-2 justify-center mb-4">
-          {["ذهب", "الولد", "إلى", "المدرسة"].map((token, index) => (
-            <span
-              key={index}
-              className="inline-block bg-white text-black px-3 py-0.5 rounded-lg shadow border"
-            >
-              {token}
-            </span>
-          ))}
-        </div>
-        {expenses.length > 0 || isLoading ? (
-          <div className="flex flex-col gap-2 h-full w-dvw items-center">
-            {isLoading && object?.expense && (
-              <div className="opacity-50">
-                <ExpenseView expense={object.expense} />
-              </div>
-            )}
+            return newIndex;
+          });
+        } else if (event.key === "ArrowRight") {
+          setFocusedIndex((prev) => {
+            const newIndex =
+              prev < analysis.tokens.length - 1 ? prev + 1 : prev;
+            if (newIndex !== prev) {
+              setRevealState("arabic");
+            }
+            return newIndex;
+          });
+        } else if (event.key === "ArrowDown") {
+          setRevealState((prev) => {
+            switch (prev) {
+              case "arabic":
+                return "transliteration";
+              case "transliteration":
+                return "part_of_speech";
+              case "part_of_speech":
+                return "translation";
+              case "translation":
+                return "arabic";
+              default:
+                return "arabic";
+            }
+          });
+        }
+      }
+    };
 
-            {expenses.map((expense) => (
-              <ExpenseView key={`${expense.details}`} expense={expense} />
-            ))}
-          </div>
-        ) : (
-          <motion.div className="h-[350px] px-4 w-full md:w-[500px] md:px-0 pt-20">
-            <div className="border rounded-lg p-6 flex flex-col gap-4 text-zinc-500 text-sm dark:text-zinc-400 dark:border-zinc-700">
-              <p className="flex flex-row justify-center gap-4 items-center text-zinc-900 dark:text-zinc-50">
-                <VercelIcon />
-                <span>+</span>
-                <ObjectIcon />
-              </p>
-              <p>
-                The useObject hook allows you to create interfaces that
-                represent a structured JSON object that is being streamed.
-              </p>
-              <p>
-                {" "}
-                Learn more about the{" "}
-                <Link
-                  className="text-blue-500 dark:text-blue-400"
-                  href="https://sdk.vercel.ai/docs/ai-sdk-ui/object-generation"
-                  target="_blank"
-                >
-                  useObject{" "}
-                </Link>
-                hook from Vercel AI SDK.
-              </p>
-            </div>
-          </motion.div>
-        )}
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [analysis]);
+
+  return (
+    <div
+      className={`flex flex-col items-center justify-center min-h-screen bg-zinc-100 dark:bg-zinc-900 p-4 ${inter.className}`}
+    >
+      <form
+        className="w-full max-w-md mb-8"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const form = event.target as HTMLFormElement;
+          const input = form.elements.namedItem("sentence") as HTMLInputElement;
+          if (input.value.trim()) {
+            submit({ sentence: input.value });
+          }
+        }}
+      >
+        <input
+          name="sentence"
+          className="w-full bg-white dark:bg-zinc-800 rounded-md px-4 py-2 outline-none text-black dark:text-white shadow-sm"
+          placeholder="Enter an Arabic sentence..."
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+          disabled={isLoading}
+          ref={inputRef}
+        />
+      </form>
+
+      {analysis && (
+        <motion.div
+          className="w-full max-w-2xl"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <TokensContainer
+            tokens={analysis.tokens}
+            revealState={revealState}
+            focusedIndex={focusedIndex}
+          />
+        </motion.div>
+      )}
+
+      <div className="fixed bottom-4 right-4 flex flex-col gap-2">
+        <kbd className="px-2 py-1.5 text-xs text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500">
+          T: Toggle Transliteration
+        </kbd>
+        <kbd className="px-2 py-1.5 text-xs text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500">
+          R: Toggle Translation
+        </kbd>
+        <kbd className="px-2 py-1.5 text-xs text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500">
+          P: Toggle Part of Speech
+        </kbd>
+        <kbd className="px-2 py-1.5 text-xs text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500">
+          ←→: Navigate Words
+        </kbd>
+        <kbd className="px-2 py-1.5 text-xs text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500">
+          ↓: Cycle Through Views
+        </kbd>
       </div>
     </div>
   );
