@@ -97,7 +97,16 @@ export default function Home() {
             ref={inputRef}
           />
         </form>
-
+        <div className="flex flex-wrap gap-2 justify-center mb-4">
+          {["ذهب", "الولد", "إلى", "المدرسة"].map((token, index) => (
+            <span
+              key={index}
+              className="inline-block bg-white text-black px-3 py-0.5 rounded-lg shadow border"
+            >
+              {token}
+            </span>
+          ))}
+        </div>
         {expenses.length > 0 || isLoading ? (
           <div className="flex flex-col gap-2 h-full w-dvw items-center">
             {isLoading && object?.expense && (
