@@ -52,10 +52,12 @@ const AnimatedText = ({
   text,
   className,
   isArabic,
+  badge,
 }: {
   text: string;
   className?: string;
   isArabic: boolean;
+  badge?: string;
 }) => {
   return (
     <motion.span
@@ -67,6 +69,17 @@ const AnimatedText = ({
         isArabic ? `${arabicFont.className}` : `${inter.className} text-sm`
       }`}
     >
+      {badge && (
+        <motion.span
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+          transition={{ duration: 0.2 }}
+          className="mr-2 -ml-2 px-2 py-[0.17rem] text-xs bg-black text-white rounded-md inline-block"
+        >
+          {badge}
+        </motion.span>
+      )}
       {text.split("").map((char, index) => (
         <motion.span
           key={index}
@@ -132,25 +145,12 @@ const TokenView = ({
       transition={{ duration: 0.4, ease: "easeInOut" }}
     >
       <AnimatePresence mode="wait">
-        {!isArabic && (
-          <motion.span
-            key={revealState}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="mr-2 -ml-2 px-2 py-[0.17rem] text-xs bg-black text-white rounded-md"
-          >
-            {getBadgeText()}
-          </motion.span>
-        )}
-      </AnimatePresence>
-      <AnimatePresence mode="wait">
         <AnimatedText
           key={revealState}
           text={getRevealContent()}
           className="inline-block"
           isArabic={isArabic}
+          badge={!isArabic ? getBadgeText() : undefined}
         />
       </AnimatePresence>
     </motion.div>
