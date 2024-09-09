@@ -7,12 +7,24 @@ import { experimental_useObject } from "ai/react";
 import { useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { arabicAnalysisSchema } from "@/app/api/chat/schema";
+import {
+  arabicAnalysisSchema,
+  PartialArabicAnalysis,
+} from "@/app/api/chat/schema";
 import { useHotkeys } from "@/hooks/use-hotkey";
-import { Inter, Noto_Naskh_Arabic } from "next/font/google";
+import { Inter, Lateef as ArabicFont } from "next/font/google";
+import {
+  FaKeyboard,
+  FaArrowLeft,
+  FaArrowRight,
+  FaArrowDown,
+} from "react-icons/fa";
 
 const inter = Inter({ subsets: ["latin"] });
-const notoNaskhArabic = Noto_Naskh_Arabic({ subsets: ["arabic"] });
+const arabicFont = ArabicFont({
+  subsets: ["arabic"],
+  weight: "400",
+});
 
 type ArabicAnalysis = {
   original_sentence: string;
@@ -50,9 +62,9 @@ const AnimatedText = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.2 }}
+      transition={{ duration: 0.1 }}
       className={`${className} ${
-        isArabic ? `${notoNaskhArabic.className}` : `${inter.className} text-sm`
+        isArabic ? `${arabicFont.className}` : `${inter.className} text-sm`
       }`}
     >
       {text.split("").map((char, index) => (
@@ -83,11 +95,11 @@ const TokenView = ({
       case "arabic":
         return token.arabic;
       case "transliteration":
-        return token.transliteration;
+        return token.transliteration || "Loading...";
       case "part_of_speech":
-        return token.part_of_speech;
+        return token.part_of_speech || "Loading...";
       case "translation":
-        return token.translation;
+        return token.translation || "Loading...";
     }
   };
 
@@ -96,24 +108,25 @@ const TokenView = ({
       case "arabic":
         return "";
       case "transliteration":
-        return "TL";
+        return token.transliteration ? "TL" : "...";
       case "part_of_speech":
-        return "POS";
+        return token.part_of_speech ? "POS" : "...";
       case "translation":
-        return "TR";
+        return token.translation ? "TR" : "...";
     }
   };
 
   const isArabic = revealState === "arabic";
+  const isLoading = !token[revealState];
 
   return (
     <motion.div
       layout
-      className={`relative inline-flex items-center px-3 py-0.5 rounded-lg text-center overflow-hidden ${
+      className={`relative inline-flex items-center px-3 h-8 rounded-lg text-center overflow-hidden ${
         isFocused
           ? "bg-white text-black shadow-[0px_0px_1px_rgba(0,0,0,0.04),0px_1px_1px_rgba(0,0,0,0.04),0px_3px_3px_rgba(0,0,0,0.04),0px_6px_6px_rgba(0,0,0,0.04),0px_12px_12px_rgba(0,0,0,0.04),0px_24px_24px_rgba(0,0,0,0.04)]"
           : "bg-zinc-200 text-zinc-500"
-      }`}
+      } ${isLoading ? "opacity-50" : ""}`}
       initial={false}
       animate={{ width: "auto" }}
       transition={{ duration: 0.4, ease: "easeInOut" }}
@@ -148,24 +161,33 @@ const TokensContainer = ({
   tokens,
   revealState,
   focusedIndex,
+  isLoading,
 }: {
-  tokens: ArabicAnalysis["tokens"];
+  tokens: ArabicAnalysis["tokens"] | PartialArabicAnalysis["tokens"];
   revealState: RevealState;
   focusedIndex: number;
+  isLoading: boolean;
 }) => {
   return (
-    <div className="flex flex-wrap-reverse gap-2 justify-center">
-      {tokens
-        .slice()
-        .reverse()
-        .map((token, index) => (
-          <TokenView
-            key={index}
-            token={token}
-            revealState={index === focusedIndex ? revealState : "arabic"}
-            isFocused={index === focusedIndex}
-          />
-        ))}
+    <div className="w-full overflow-y-auto max-h-[60vh] py-4 px-2">
+      <div className="flex justify-end flex-wrap-reverse items-center gap-2">
+        {tokens
+          ?.filter(
+            (token): token is NonNullable<typeof token> =>
+              !!token && "arabic" in token
+          )
+          .slice()
+          .map((token, index) => (
+            <div key={index} className="mb-2">
+              <TokenView
+                token={token}
+                revealState={index === focusedIndex ? revealState : "arabic"}
+                isFocused={index === focusedIndex}
+              />
+            </div>
+          ))
+          .reverse()}
+      </div>
     </div>
   );
 };
@@ -185,7 +207,7 @@ export default function Home() {
       if (object != null) {
         setAnalysis(object.analysis);
         setInput("");
-        setFocusedIndex(object.analysis.tokens.length - 1); // Start from the rightmost token
+        setFocusedIndex(0); // Start from the rightmost token
         inputRef.current?.focus();
       }
     },
@@ -202,7 +224,7 @@ export default function Home() {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (analysis) {
-        if (event.key === "ArrowLeft") {
+        if (event.key === "ArrowRight") {
           setFocusedIndex((prev) => {
             const newIndex = prev > 0 ? prev - 1 : prev;
             if (newIndex !== prev) {
@@ -210,7 +232,7 @@ export default function Home() {
             }
             return newIndex;
           });
-        } else if (event.key === "ArrowRight") {
+        } else if (event.key === "ArrowLeft") {
           setFocusedIndex((prev) => {
             const newIndex =
               prev < analysis.tokens.length - 1 ? prev + 1 : prev;
@@ -262,7 +284,7 @@ export default function Home() {
       >
         <input
           name="sentence"
-          className="w-full bg-white dark:bg-zinc-800 rounded-md px-4 py-2 outline-none text-black dark:text-white shadow-sm"
+          className={`w-full bg-white dark:bg-zinc-800 rounded-md px-4 py-2 outline-none text-black dark:text-white shadow-sm`}
           placeholder="Enter an Arabic sentence..."
           value={input}
           onChange={(event) => setInput(event.target.value)}
@@ -271,36 +293,38 @@ export default function Home() {
         />
       </form>
 
-      {analysis && (
+      {(analysis || object?.analysis?.tokens?.length) && (
         <motion.div
-          className="w-full max-w-2xl"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
+          className="w-full max-w-3xl mx-auto"
+          // initial={{ opacity: 0 }}
+          // animate={{ opacity: 1 }}
+          // transition={{ duration: 0.5 }}
         >
           <TokensContainer
-            tokens={analysis.tokens}
+            tokens={analysis?.tokens || object?.analysis?.tokens}
             revealState={revealState}
             focusedIndex={focusedIndex}
+            isLoading={isLoading}
           />
         </motion.div>
       )}
 
       <div className="fixed bottom-4 right-4 flex flex-col gap-2">
-        <kbd className="px-2 py-1.5 text-xs text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500">
-          T: Toggle Transliteration
+        <kbd className="flex items-center px-2 py-1.5 text-xs text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500">
+          <FaKeyboard className="mr-2" /> T: Toggle Transliteration
         </kbd>
-        <kbd className="px-2 py-1.5 text-xs text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500">
-          R: Toggle Translation
+        <kbd className="flex items-center px-2 py-1.5 text-xs text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500">
+          <FaKeyboard className="mr-2" /> R: Toggle Translation
         </kbd>
-        <kbd className="px-2 py-1.5 text-xs text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500">
-          P: Toggle Part of Speech
+        <kbd className="flex items-center px-2 py-1.5 text-xs text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500">
+          <FaKeyboard className="mr-2" /> P: Toggle Part of Speech
         </kbd>
-        <kbd className="px-2 py-1.5 text-xs text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500">
-          ←→: Navigate Words
+        <kbd className="flex items-center px-2 py-1.5 text-xs text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500">
+          <FaArrowLeft className="mr-1" /> <FaArrowRight className="mr-2" />{" "}
+          Navigate Words
         </kbd>
-        <kbd className="px-2 py-1.5 text-xs text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500">
-          ↓: Cycle Through Views
+        <kbd className="flex items-center px-2 py-1.5 text-xs text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500">
+          <FaArrowDown className="mr-2" /> Cycle Through Views
         </kbd>
       </div>
     </div>
