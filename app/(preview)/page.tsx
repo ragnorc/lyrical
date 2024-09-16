@@ -12,7 +12,7 @@ import {
   PartialArabicAnalysis,
 } from "@/app/api/chat/schema";
 import { useHotkeys } from "@/hooks/use-hotkey";
-import { Inter, Lateef as ArabicFont } from "next/font/google";
+import { Inter, Lateef as ArabicFont, Jost } from "next/font/google";
 import {
   FaKeyboard,
   FaArrowLeft,
@@ -20,10 +20,18 @@ import {
   FaArrowDown,
 } from "react-icons/fa";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 const arabicFont = ArabicFont({
   subsets: ["arabic"],
   weight: "400",
+  variable: "--font-arabic",
+});
+const syne = Jost({
+  subsets: ["latin"],
+  variable: "--font-syne",
 });
 
 type ArabicAnalysis = {
@@ -197,6 +205,7 @@ export default function Home() {
   const [analysis, setAnalysis] = useState<ArabicAnalysis | null>(null);
   const [revealState, setRevealState] = useState<RevealState>("arabic");
   const [focusedIndex, setFocusedIndex] = useState<number>(0);
+  const [showInput, setShowInput] = useState<boolean>(true);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -208,7 +217,6 @@ export default function Home() {
         setAnalysis(object.analysis);
         setInput("");
         setFocusedIndex(0); // Start from the rightmost token
-        inputRef.current?.focus();
       }
     },
     onError: (error) => {
@@ -267,65 +275,146 @@ export default function Home() {
     };
   }, [analysis]);
 
+  useEffect(() => {
+    if (object?.analysis?.tokens?.length) {
+      setShowInput(false);
+    }
+  }, [object?.analysis?.tokens]);
+
   return (
     <div
-      className={`flex flex-col items-center justify-center min-h-screen bg-zinc-100 dark:bg-zinc-900 p-4 ${inter.className}`}
+      className={`${syne.variable} font-inter flex flex-col items-center justify-center min-h-screen bg-[#F5F5F5] dark:bg-zinc-900 p-4 relative overflow-hidden`}
     >
-      <form
-        className="w-full max-w-md mb-8"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const form = event.target as HTMLFormElement;
-          const input = form.elements.namedItem("sentence") as HTMLInputElement;
-          if (input.value.trim()) {
-            submit({ sentence: input.value });
-          }
-        }}
-      >
-        <input
-          name="sentence"
-          className={`w-full bg-white dark:bg-zinc-800 rounded-md px-4 py-2 outline-none text-black dark:text-white shadow-sm`}
-          placeholder="Enter an Arabic sentence..."
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          disabled={isLoading}
-          ref={inputRef}
-        />
-      </form>
+      <div className="absolute -bottom-[2%] -right-[10%] h-40 w-40 lg:-top-[10%] lg:h-96 lg:w-96">
+        <div className="relative bottom-0 left-0 h-full w-full rounded-full bg-gradient-to-b from-blue-400/30 to-red-600/30 blur-[70px] filter" />
+      </div>
+      <div className="relative z-10 w-full">
+        {/* <h1 className="font-syne text-md font-bold text-center mb-8 text-black dark:text-zinc-200">
+          SAPPHIRE
+        </h1> */}
+        <AnimatePresence>
+          {showInput && (
+            <motion.form
+              initial={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="w-full max-w-md mb-8 mx-auto relative"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const form = event.target as HTMLFormElement;
+                const input = form.elements.namedItem(
+                  "sentence"
+                ) as HTMLInputElement;
+                if (input.value.trim()) {
+                  submit({ sentence: input.value });
+                }
+              }}
+            >
+              <div className="relative">
+                <input
+                  name="sentence"
+                  className={`font-inter text-sm w-full bg-[#e9e9e9] border-[0.5px] border-zinc-300 dark:bg-zinc-800 rounded-xl px-4 py-3 pr-12 outline-none text-black dark:text-white`}
+                  placeholder="I want to read about ..."
+                  value={input}
+                  onChange={(event) => setInput(event.target.value)}
+                  disabled={isLoading}
+                  ref={inputRef}
+                />
+                <button
+                  type="submit"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white dark:bg-zinc-700 rounded-lg px-3 py-2 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-900 hover:text-zinc-100 dark:hover:bg-zinc-600 transition-colors duration-200 shadow-[0_2px_4px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_4px_rgba(255,255,255,0.05),0_1px_2px_rgba(255,255,255,0.03)]"
+                  disabled={isLoading}
+                >
+                  <FaArrowRight className="w-3 h-3 font-light" />
+                </button>
+              </div>
+            </motion.form>
+          )}
+        </AnimatePresence>
 
-      {(analysis || object?.analysis?.tokens?.length) && (
-        <motion.div
-          className="w-full max-w-3xl mx-auto"
-          // initial={{ opacity: 0 }}
-          // animate={{ opacity: 1 }}
-          // transition={{ duration: 0.5 }}
-        >
-          <TokensContainer
-            tokens={analysis?.tokens || object?.analysis?.tokens}
-            revealState={revealState}
-            focusedIndex={focusedIndex}
-            isLoading={isLoading}
-          />
-        </motion.div>
-      )}
-
-      <div className="fixed bottom-4 right-4 flex flex-col gap-2">
-        <kbd className="flex items-center px-2 py-1.5 text-xs text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500">
-          <FaKeyboard className="mr-2" /> T: Toggle Transliteration
-        </kbd>
-        <kbd className="flex items-center px-2 py-1.5 text-xs text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500">
-          <FaKeyboard className="mr-2" /> R: Toggle Translation
-        </kbd>
-        <kbd className="flex items-center px-2 py-1.5 text-xs text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500">
-          <FaKeyboard className="mr-2" /> P: Toggle Part of Speech
-        </kbd>
-        <kbd className="flex items-center px-2 py-1.5 text-xs text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500">
-          <FaArrowLeft className="mr-1" /> <FaArrowRight className="mr-2" />{" "}
-          Navigate Words
-        </kbd>
-        <kbd className="flex items-center px-2 py-1.5 text-xs text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500">
-          <FaArrowDown className="mr-2" /> Cycle Through Views
-        </kbd>
+        {(analysis || object?.analysis?.tokens?.length) && (
+          <motion.div
+            className="w-full max-w-3xl mx-auto"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <TokensContainer
+              tokens={analysis?.tokens || object?.analysis?.tokens}
+              revealState={revealState}
+              focusedIndex={focusedIndex}
+              isLoading={isLoading}
+            />
+          </motion.div>
+        )}
+        <div className="fixed bottom-8 right-10 flex flex-col gap-2">
+          <div className="flex items-center">
+            <kbd className="flex items-center justify-center w-7 h-7 text-xs font-bold text-white bg-gradient-to-b from-[#72829A] to-[#444E62] rounded-lg shadow-[inset_0_-3px_0_#2D3444,inset_0_-4px_0_#5A6374,0_5px_8px_rgba(0,0,0,0.25),0_0_1px_#131720] border border-[#69778E] border-b-0">
+              <span
+                className="relative"
+                style={{ textShadow: "0 0.4px 0 #FFFFFF" }}
+              >
+                T
+              </span>
+            </kbd>
+            <span className="ml-2 text-xs text-gray-600 dark:text-gray-200">
+              Toggle Transliteration
+            </span>
+          </div>
+          <div className="flex items-center">
+            <kbd className="flex items-center justify-center w-7 h-7 text-xs font-bold text-white bg-gradient-to-b from-[#72829A] to-[#444E62] rounded-lg shadow-[inset_0_-3px_0_#2D3444,inset_0_-4px_0_#5A6374,0_5px_8px_rgba(0,0,0,0.25),0_0_1px_#131720] border border-[#69778E] border-b-0">
+              <span
+                className="relative"
+                style={{ textShadow: "0 0.4px 0 #FFFFFF" }}
+              >
+                R
+              </span>
+            </kbd>
+            <span className="ml-2 text-xs text-gray-600 dark:text-gray-200">
+              Toggle Translation
+            </span>
+          </div>
+          <div className="flex items-center">
+            <kbd className="flex items-center justify-center w-7 h-7 text-xs font-bold text-white bg-gradient-to-b from-[#72829A] to-[#444E62] rounded-lg shadow-[inset_0_-3px_0_#2D3444,inset_0_-4px_0_#5A6374,0_5px_8px_rgba(0,0,0,0.25),0_0_1px_#131720] border border-[#69778E] border-b-0">
+              <span
+                className="relative"
+                style={{ textShadow: "0 0.4px 0 #FFFFFF" }}
+              >
+                P
+              </span>
+            </kbd>
+            <span className="ml-2 text-xs text-gray-600 dark:text-gray-200">
+              Toggle Part of Speech
+            </span>
+          </div>
+          <div className="flex items-center">
+            <kbd className="flex items-center justify-center w-7 h-7 text-xs font-bold text-white bg-gradient-to-b from-[#72829A] to-[#444E62] rounded-lg shadow-[inset_0_-3px_0_#2D3444,inset_0_-4px_0_#5A6374,0_5px_8px_rgba(0,0,0,0.25),0_0_1px_#131720] border border-[#69778E] border-b-0">
+              <FaArrowLeft
+                className="relative"
+                style={{ filter: "drop-shadow(0 0.4px 0 #FFFFFF)" }}
+              />
+            </kbd>
+            <kbd className="flex items-center justify-center w-7 h-7 text-xs font-bold text-white bg-gradient-to-b from-[#72829A] to-[#444E62] rounded-lg shadow-[inset_0_-3px_0_#2D3444,inset_0_-4px_0_#5A6374,0_5px_8px_rgba(0,0,0,0.25),0_0_1px_#131720] border border-[#69778E] border-b-0 ml-1">
+              <FaArrowRight
+                className="relative"
+                style={{ filter: "drop-shadow(0 0.4px 0 #FFFFFF)" }}
+              />
+            </kbd>
+            <span className="ml-2 text-xs text-gray-600 dark:text-gray-200">
+              Navigate Words
+            </span>
+          </div>
+          <div className="flex items-center">
+            <kbd className="flex items-center justify-center w-7 h-7 text-xs font-bold text-white bg-gradient-to-b from-[#72829A] to-[#444E62] rounded-lg shadow-[inset_0_-3px_0_#2D3444,inset_0_-4px_0_#5A6374,0_5px_8px_rgba(0,0,0,0.25),0_0_1px_#131720] border border-[#69778E] border-b-0">
+              <FaArrowDown
+                className="relative"
+                style={{ filter: "drop-shadow(0 0.4px 0 #FFFFFF)" }}
+              />
+            </kbd>
+            <span className="ml-2 text-xs text-gray-600 dark:text-gray-200">
+              Cycle Through Views
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
