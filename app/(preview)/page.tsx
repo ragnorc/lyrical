@@ -10,7 +10,8 @@ import { toast } from "sonner";
 import {
   arabicAnalysisSchema,
   PartialArabicAnalysis,
-} from "@/app/api/chat/schema";
+  ArabicAnalysis,
+} from "@/app/api/analyze/schema";
 import { useHotkeys } from "@/hooks/use-hotkey";
 import { Inter, Lateef as ArabicFont, Jost } from "next/font/google";
 import {
@@ -33,22 +34,6 @@ const syne = Jost({
   subsets: ["latin"],
   variable: "--font-syne",
 });
-
-type ArabicAnalysis = {
-  original_sentence: string;
-  transliteration: string;
-  translation: string;
-  tokens: Array<{
-    arabic: string;
-    transliteration: string;
-    translation: string;
-    part_of_speech: string;
-  }>;
-  syntax: Array<
-    { type: string; index: number } | { type: string; indices: number[] }
-  >;
-  grammatical_notes: string[];
-};
 
 type RevealState =
   | "arabic"
@@ -143,7 +128,7 @@ const TokenView = ({
   return (
     <motion.div
       layout
-      className={`relative inline-flex items-center px-3 h-8 rounded-lg text-center overflow-hidden ${
+      className={`relative inline-flex items-center px-2.5 h-7.5 rounded-lg text-center overflow-hidden ${
         isFocused
           ? "bg-white text-black shadow-[0px_0px_1px_rgba(0,0,0,0.04),0px_1px_1px_rgba(0,0,0,0.04),0px_3px_3px_rgba(0,0,0,0.04),0px_6px_6px_rgba(0,0,0,0.04),0px_12px_12px_rgba(0,0,0,0.04),0px_24px_24px_rgba(0,0,0,0.04)]"
           : "bg-zinc-200 text-zinc-500"
@@ -166,57 +151,68 @@ const TokenView = ({
 };
 
 const TokensContainer = ({
-  tokens,
+  sentences,
   revealState,
   focusedIndex,
-  isLoading,
 }: {
-  tokens: ArabicAnalysis["tokens"] | PartialArabicAnalysis["tokens"];
+  sentences: ArabicAnalysis["tokens"][];
   revealState: RevealState;
   focusedIndex: number;
-  isLoading: boolean;
 }) => {
   return (
     <div className="w-full overflow-y-auto max-h-[60vh] py-4 px-2">
-      <div className="flex justify-end flex-wrap-reverse items-center gap-2">
-        {tokens
-          ?.filter(
-            (token): token is NonNullable<typeof token> =>
-              !!token && "arabic" in token
-          )
-          .slice()
-          .map((token, index) => (
-            <div key={index} className="mb-2">
-              <TokenView
-                token={token}
-                revealState={index === focusedIndex ? revealState : "arabic"}
-                isFocused={index === focusedIndex}
-              />
-            </div>
-          ))
-          .reverse()}
+      <div className="flex flex-col items-end gap-2">
+        {sentences.map((sentence, sentenceIndex) => (
+          <div
+            key={sentenceIndex}
+            className="flex flex-row-reverse gap-2 justify-start"
+          >
+            {sentence
+              .filter(
+                (token): token is NonNullable<typeof token> =>
+                  !!token && "arabic" in token
+              )
+              .map((token, tokenIndex) => (
+                <div key={tokenIndex} className="mb-2">
+                  <TokenView
+                    token={token}
+                    revealState={
+                      tokenIndex === focusedIndex ? revealState : "arabic"
+                    }
+                    isFocused={tokenIndex === focusedIndex}
+                  />
+                </div>
+              ))}
+          </div>
+        ))}
       </div>
     </div>
   );
 };
 
 export default function Home() {
-  const [input, setInput] = useState<string>("");
-  const [analysis, setAnalysis] = useState<ArabicAnalysis | null>(null);
+  const [topic, setTopic] = useState<string>("");
+  const [sentences, setSentences] = useState<ArabicAnalysis["tokens"][]>([]);
   const [revealState, setRevealState] = useState<RevealState>("arabic");
   const [focusedIndex, setFocusedIndex] = useState<number>(0);
   const [showInput, setShowInput] = useState<boolean>(true);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { submit, isLoading, object } = experimental_useObject({
-    api: "/api/chat",
+  const {
+    submit,
+    isLoading: isLoadingAnalysis,
+    object,
+  } = experimental_useObject({
+    api: "/api/analyze",
     schema: arabicAnalysisSchema,
     onFinish({ object }) {
       if (object != null) {
-        setAnalysis(object.analysis);
-        setInput("");
-        setFocusedIndex(0); // Start from the rightmost token
+        setSentences((prevSentences) => [
+          ...prevSentences,
+          object.analysis.tokens,
+        ]);
+        setFocusedIndex(0);
       }
     },
     onError: (error) => {
@@ -231,7 +227,7 @@ export default function Home() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (analysis) {
+      if (sentences.length > 0) {
         if (event.key === "ArrowRight") {
           setFocusedIndex((prev) => {
             const newIndex = prev > 0 ? prev - 1 : prev;
@@ -243,7 +239,9 @@ export default function Home() {
         } else if (event.key === "ArrowLeft") {
           setFocusedIndex((prev) => {
             const newIndex =
-              prev < analysis.tokens.length - 1 ? prev + 1 : prev;
+              prev < sentences[sentences.length - 1].length - 1
+                ? prev + 1
+                : prev;
             if (newIndex !== prev) {
               setRevealState("arabic");
             }
@@ -273,14 +271,60 @@ export default function Home() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [analysis]);
+  }, [sentences]);
 
   useEffect(() => {
     if (object?.analysis?.tokens?.length) {
       setShowInput(false);
     }
-  }, [object?.analysis?.tokens]);
+  }, [object?.analysis]);
 
+  const generateSentences = async (topic: string) => {
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ topic }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate sentences");
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error("Failed to get reader from response");
+      }
+
+      let accumulatedText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = new TextDecoder().decode(value);
+        accumulatedText += chunk;
+
+        const sentences = accumulatedText.match(/[^.!?]+[.!?]+/g) || [];
+
+        for (const sentence of sentences) {
+          await submit({ sentence: sentence.trim() });
+        }
+
+        accumulatedText = accumulatedText.replace(/[^.!?]+[.!?]+/g, "");
+      }
+    } catch (error) {
+      console.error("Error generating sentences:", error);
+      toast.error("Failed to generate sentences. Please try again.");
+    }
+  };
+
+  const allSentences = [
+    ...sentences,
+    isLoadingAnalysis ? object?.analysis?.tokens || [] : [],
+  ];
   return (
     <div
       className={`${syne.variable} font-inter flex flex-col items-center justify-center min-h-screen bg-[#F5F5F5] dark:bg-zinc-900 p-4 relative overflow-hidden`}
@@ -289,9 +333,6 @@ export default function Home() {
         <div className="relative bottom-0 left-0 h-full w-full rounded-full bg-gradient-to-b from-blue-400/30 to-red-600/30 blur-[70px] filter" />
       </div>
       <div className="relative z-10 w-full">
-        {/* <h1 className="font-syne text-md font-bold text-center mb-8 text-black dark:text-zinc-200">
-          SAPPHIRE
-        </h1> */}
         <AnimatePresence>
           {showInput && (
             <motion.form
@@ -300,29 +341,25 @@ export default function Home() {
               className="w-full max-w-md mb-8 mx-auto relative"
               onSubmit={(event) => {
                 event.preventDefault();
-                const form = event.target as HTMLFormElement;
-                const input = form.elements.namedItem(
-                  "sentence"
-                ) as HTMLInputElement;
-                if (input.value.trim()) {
-                  submit({ sentence: input.value });
+                if (topic.trim()) {
+                  generateSentences(topic);
                 }
               }}
             >
               <div className="relative">
                 <input
-                  name="sentence"
+                  name="topic"
                   className={`font-inter text-sm w-full bg-[#e9e9e9] border-[0.5px] border-zinc-300 dark:bg-zinc-800 rounded-xl px-4 py-3 pr-12 outline-none text-black dark:text-white`}
-                  placeholder="I want to read about ..."
-                  value={input}
-                  onChange={(event) => setInput(event.target.value)}
-                  disabled={isLoading}
+                  placeholder="Enter a topic..."
+                  value={topic}
+                  onChange={(event) => setTopic(event.target.value)}
+                  disabled={isLoadingAnalysis}
                   ref={inputRef}
                 />
                 <button
                   type="submit"
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white dark:bg-zinc-700 rounded-lg px-3 py-2 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-900 hover:text-zinc-100 dark:hover:bg-zinc-600 transition-colors duration-200 shadow-[0_2px_4px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_4px_rgba(255,255,255,0.05),0_1px_2px_rgba(255,255,255,0.03)]"
-                  disabled={isLoading}
+                  disabled={isLoadingAnalysis}
                 >
                   <FaArrowRight className="w-3 h-3 font-light" />
                 </button>
@@ -331,7 +368,7 @@ export default function Home() {
           )}
         </AnimatePresence>
 
-        {(analysis || object?.analysis?.tokens?.length) && (
+        {allSentences.length > 0 && (
           <motion.div
             className="w-full max-w-3xl mx-auto"
             initial={{ opacity: 0 }}
@@ -339,10 +376,9 @@ export default function Home() {
             transition={{ duration: 0.5 }}
           >
             <TokensContainer
-              tokens={analysis?.tokens || object?.analysis?.tokens}
+              sentences={allSentences}
               revealState={revealState}
               focusedIndex={focusedIndex}
-              isLoading={isLoading}
             />
           </motion.div>
         )}
