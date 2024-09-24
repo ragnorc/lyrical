@@ -68,7 +68,7 @@ const AnimatedText = ({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.8 }}
           transition={{ duration: 0.2 }}
-          className="mr-2 -ml-2 px-2 py-[0.17rem] text-xs bg-black text-white rounded-md inline-block"
+          className="mr-2 -ml-1 px-2 py-0.5 text-xs bg-black text-white rounded-md inline-block"
         >
           {badge}
         </motion.span>
@@ -128,7 +128,7 @@ const TokenView = ({
   return (
     <motion.div
       layout
-      className={`relative inline-flex items-center px-2.5 h-7.5 rounded-lg text-center overflow-hidden ${
+      className={`relative flex items-center px-2.5 h-[1.8rem] rounded-lg text-center overflow-hidden ${
         isFocused
           ? "bg-white text-black shadow-[0px_0px_1px_rgba(0,0,0,0.04),0px_1px_1px_rgba(0,0,0,0.04),0px_3px_3px_rgba(0,0,0,0.04),0px_6px_6px_rgba(0,0,0,0.04),0px_12px_12px_rgba(0,0,0,0.04),0px_24px_24px_rgba(0,0,0,0.04)]"
           : "bg-zinc-200 text-zinc-500"
@@ -141,7 +141,7 @@ const TokenView = ({
         <AnimatedText
           key={revealState}
           text={getRevealContent()}
-          className="inline-block"
+          className="inline-block whitespace-nowrap"
           isArabic={isArabic}
           badge={!isArabic ? getBadgeText() : undefined}
         />
@@ -159,6 +159,13 @@ const TokensContainer = ({
   revealState: RevealState;
   focusedIndex: number;
 }) => {
+  const flatTokens = sentences.flatMap((sentence) =>
+    sentence.filter(
+      (token): token is NonNullable<typeof token> =>
+        !!token && "arabic" in token,
+    ),
+  );
+
   return (
     <div className="w-full overflow-y-auto max-h-[60vh] py-4 px-2">
       <div className="flex flex-col items-end gap-2">
@@ -170,19 +177,22 @@ const TokensContainer = ({
             {sentence
               .filter(
                 (token): token is NonNullable<typeof token> =>
-                  !!token && "arabic" in token
+                  !!token && "arabic" in token,
               )
-              .map((token, tokenIndex) => (
-                <div key={tokenIndex} className="mb-2">
-                  <TokenView
-                    token={token}
-                    revealState={
-                      tokenIndex === focusedIndex ? revealState : "arabic"
-                    }
-                    isFocused={tokenIndex === focusedIndex}
-                  />
-                </div>
-              ))}
+              .map((token, tokenIndex) => {
+                const globalIndex = flatTokens.findIndex((t) => t === token);
+                return (
+                  <div key={tokenIndex} className="mb-2">
+                    <TokenView
+                      token={token}
+                      revealState={
+                        globalIndex === focusedIndex ? revealState : "arabic"
+                      }
+                      isFocused={globalIndex === focusedIndex}
+                    />
+                  </div>
+                );
+              })}
           </div>
         ))}
       </div>
@@ -228,6 +238,14 @@ export default function Home() {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (sentences.length > 0) {
+        const flatTokens = sentences.flatMap((sentence) =>
+          sentence.filter(
+            (token): token is NonNullable<typeof token> =>
+              !!token && "arabic" in token,
+          ),
+        );
+        const totalTokens = flatTokens.length;
+
         if (event.key === "ArrowRight") {
           setFocusedIndex((prev) => {
             const newIndex = prev > 0 ? prev - 1 : prev;
@@ -238,10 +256,7 @@ export default function Home() {
           });
         } else if (event.key === "ArrowLeft") {
           setFocusedIndex((prev) => {
-            const newIndex =
-              prev < sentences[sentences.length - 1].length - 1
-                ? prev + 1
-                : prev;
+            const newIndex = prev < totalTokens - 1 ? prev + 1 : prev;
             if (newIndex !== prev) {
               setRevealState("arabic");
             }
