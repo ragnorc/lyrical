@@ -14,7 +14,7 @@ const inter = Inter({
 });
 
 interface TokenViewProps {
-  token: ArabicAnalysis["tokens"][0][0];
+  token: ArabicAnalysis["tokens"][0];
   revealState: "arabic" | "transliteration" | "part_of_speech" | "translation";
   isFocused: boolean;
 }
