@@ -6,14 +6,13 @@
 import { experimental_useObject } from "ai/react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { arabicAnalysisSchema, ArabicAnalysis } from "@/app/api/analyze/schema";
-import { useHotkeys } from "@/hooks/use-hotkey";
 import { Inter, Lateef as ArabicFont, Jost } from "next/font/google";
 import { TopicInput } from "@/components/TopicInput";
 import { TokensContainer } from "@/components/TokensContainer";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { useTokenNavigation } from "@/hooks/useTokenNavigation";
 import { useGenerateSentences } from "@/hooks/useGenerateSentences";
+import { ArabicAnalysis, arabicAnalysisSchema } from "@/app/api/analyze/schema";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -40,9 +39,6 @@ export default function Home() {
   const [sentences, setSentences] = useState<ArabicAnalysis["tokens"][]>([]);
   const [showInput, setShowInput] = useState<boolean>(true);
 
-  const { focusedIndex, setFocusedIndex, revealState, setRevealState } =
-    useTokenNavigation(sentences);
-
   const {
     submit,
     isLoading: isLoadingAnalysis,
@@ -56,7 +52,6 @@ export default function Home() {
           ...prevSentences,
           object.analysis.tokens,
         ]);
-        setFocusedIndex(0);
       }
     },
     onError: (error) => {
@@ -75,8 +70,12 @@ export default function Home() {
 
   const allSentences = [
     ...sentences,
-    isLoadingAnalysis ? object?.analysis?.tokens || [] : [],
+    isLoadingAnalysis
+      ? ((object?.analysis?.tokens || []) as ArabicAnalysis["tokens"])
+      : [],
   ];
+
+  const { focusedIndex, revealState } = useTokenNavigation(allSentences);
 
   return (
     <div
