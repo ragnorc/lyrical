@@ -1,7 +1,11 @@
 import { toast } from "sonner";
+import { useState } from "react";
 
 export function useGenerateSentences(submit: (data: { sentence: string }) => void) {
-  return async (topic: string) => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const generateSentences = async (topic: string) => {
+    setIsLoading(true);
     try {
       const response = await fetch("/api/generate", {
         method: "POST",
@@ -38,6 +42,10 @@ export function useGenerateSentences(submit: (data: { sentence: string }) => voi
     } catch (error) {
       console.error("Error generating sentences:", error);
       toast.error("Failed to generate sentences. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  return { generateSentences, isLoading };
 }

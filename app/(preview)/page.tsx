@@ -60,7 +60,8 @@ export default function Home() {
     },
   });
 
-  const generateSentences = useGenerateSentences(submit);
+  const { generateSentences, isLoading: isLoadingSentences } =
+    useGenerateSentences(submit);
 
   useEffect(() => {
     if (object?.analysis?.tokens?.length) {
@@ -89,7 +90,7 @@ export default function Home() {
           showInput={showInput}
           topic={topic}
           setTopic={setTopic}
-          isLoadingAnalysis={isLoadingAnalysis}
+          isLoading={isLoadingSentences}
           onSubmit={() => generateSentences(topic)}
         />
 
