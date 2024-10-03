@@ -1,5 +1,10 @@
 import React from "react";
-import { FaArrowLeft, FaArrowRight, FaArrowDown } from "react-icons/fa";
+import {
+  FaArrowLeft,
+  FaArrowRight,
+  FaArrowDown,
+  FaArrowUp,
+} from "react-icons/fa";
 
 export function KeyboardShortcuts() {
   return (
@@ -14,7 +19,13 @@ export function KeyboardShortcuts() {
           Navigate Words
         </span>
       </div>
-      <ShortcutKey icon={<FaArrowDown />} description="Cycle Through Views" />
+      <div className="flex items-center">
+        <ShortcutKey icon={<FaArrowUp />} />
+        <ShortcutKey icon={<FaArrowDown />} className="ml-1" />
+        <span className="ml-2 text-xs text-gray-600 dark:text-gray-200">
+          Cycle Through Views
+        </span>
+      </div>
     </div>
   );
 }
