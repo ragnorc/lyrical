@@ -13,6 +13,8 @@ import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { useTokenNavigation } from "@/hooks/useTokenNavigation";
 import { useGenerateSentences } from "@/hooks/useGenerateSentences";
 import { ArabicAnalysis, arabicAnalysisSchema } from "@/app/api/analyze/schema";
+import { FaArrowLeft } from "react-icons/fa6";
+import { GradientButton } from "@/components/GradientButton";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -78,12 +80,31 @@ export default function Home() {
 
   const { focusedIndex, revealState } = useTokenNavigation(allSentences);
 
+  const handleBack = () => {
+    setSentences([]);
+    setShowInput(true);
+    setTopic("");
+  };
+
   return (
     <div
       className={`${syne.variable} font-inter flex flex-col items-center justify-center min-h-screen bg-[#F5F5F5] dark:bg-zinc-900 p-4 relative overflow-hidden`}
     >
       <div className="absolute -bottom-[2%] -right-[10%] h-40 w-40 lg:-top-[10%] lg:h-96 lg:w-96">
         <div className="relative bottom-0 left-0 h-full w-full rounded-full bg-gradient-to-b from-blue-400/30 to-red-600/30 blur-[70px] filter" />
+      </div>
+      <div className="absolute top-10 left-10">
+        {!showInput && (
+          <GradientButton
+            onClick={handleBack}
+            icon={
+              <>
+                <FaArrowLeft className="absolute z-10 text-white/90" />
+                <FaArrowLeft className="absolute text-black translate-y-[-0.2px]" />
+              </>
+            }
+          />
+        )}
       </div>
       <div className="relative z-10 w-full">
         <TopicInput
