@@ -1,49 +1,69 @@
-import { useState } from 'react';
-import { ArabicAnalysis } from "@/app/api/analyze/schema";
+import { useState, useCallback } from 'react';
+import { PartialLanguageAnalysis } from "@/app/api/generate/schema";
 import { useHotkeys } from '@/hooks/useHotkey';
 
-type RevealState = "arabic" | "transliteration" | "part_of_speech" | "translation";
+type RevealState = "original" | "transliteration" | "part_of_speech" | "translation";
 
-export function useTokenNavigation(sentences: ArabicAnalysis["tokens"][]) {
+export function useTokenNavigation(sentences: PartialLanguageAnalysis | undefined, rtl: boolean | undefined) {
   const [focusedIndex, setFocusedIndex] = useState<number>(0);
-  const [revealState, setRevealState] = useState<RevealState>("arabic");
+  const [revealState, setRevealState] = useState<RevealState>("original");
 
-  const flatTokens = sentences.flatMap((sentence) =>
-    sentence.filter(
+  const flatTokens = sentences?.flatMap((sentence) =>
+    sentence?.tokens?.filter(
       (token): token is NonNullable<typeof token> =>
-        !!token && "arabic" in token,
-    ),
-  );
+        !!token && "original" in token
+    ) ?? []
+  ) ?? [];
+
   const totalTokens = flatTokens.length;
 
-  const navigate = (direction: 1 | -1) => {
+  const navigate = useCallback((direction: 1 | -1) => {
     setFocusedIndex((prev) => {
-      const newIndex = prev + direction;
+      const newIndex = prev + (rtl ? -direction : direction);
       return newIndex >= 0 && newIndex < totalTokens ? newIndex : prev;
     });
-    setRevealState("arabic");
-  };
+    
+    setRevealState("original");
+  }, [rtl, totalTokens]);
 
-  const toggleState = (state: RevealState) => {
-    setRevealState((prev) => prev === state ? "arabic" : state);
-  };
+  const toggleState = useCallback((state: RevealState) => {
+    const currentToken = flatTokens[focusedIndex];
+    if (currentToken && currentToken[state]) {
+      setRevealState((prev) => prev === state ? "original" : state);
+    }
+  }, [flatTokens, focusedIndex]);
 
-  const cycleView = (direction: 1 | -1) => {
-    const states: RevealState[] = ["arabic", "transliteration", "part_of_speech", "translation"];
+  const cycleView = useCallback((direction: 1 | -1) => {
+    const states: RevealState[] = ["original", "transliteration", "part_of_speech", "translation"];
+    const currentToken = flatTokens[focusedIndex];
+    console.log(focusedIndex);
     setRevealState((prev) => {
-      const currentIndex = states.indexOf(prev);
-      const newIndex = (currentIndex + direction + states.length) % states.length;
-      return states[newIndex];
+      let currentIndex = states.indexOf(prev);
+      let newIndex: number;
+      let newState: RevealState;
+
+      for (let i = 0; i < states.length; i++) {
+        newIndex = (currentIndex + direction + states.length) % states.length;
+        newState = states[newIndex];
+        
+        if (newState === "original" || (currentToken && currentToken[newState])) {
+          return newState;
+        }
+        
+        currentIndex = newIndex;
+      }
+
+      return prev; // If no valid state is found, keep the current state
     });
-  };
+  }, [flatTokens, focusedIndex]);
 
-  useHotkeys("ArrowLeft", () => navigate(1), [totalTokens]);
-  useHotkeys("ArrowRight", () => navigate(-1), [totalTokens]);
-  useHotkeys("ArrowDown", () => cycleView(1));
-  useHotkeys("ArrowUp", () => cycleView(-1));
-  useHotkeys("T", () => toggleState("transliteration"));
-  useHotkeys("R", () => toggleState("translation"));
-  useHotkeys("P", () => toggleState("part_of_speech"));
+  useHotkeys("ArrowLeft", () => navigate(-1), [navigate]);
+  useHotkeys("ArrowRight", () => navigate(1), [navigate]);
+  useHotkeys("ArrowDown", () => cycleView(1), [cycleView]);
+  useHotkeys("ArrowUp", () => cycleView(-1), [cycleView]);
+  useHotkeys("T", () => toggleState("transliteration"), [toggleState]);
+  useHotkeys("R", () => toggleState("translation"), [toggleState]);
+  useHotkeys("P", () => toggleState("part_of_speech"), [toggleState]);
 
-  return { focusedIndex, setFocusedIndex, revealState, setRevealState };
+  return { focusedIndex, setFocusedIndex, revealState, setRevealState, cycleView };
 }

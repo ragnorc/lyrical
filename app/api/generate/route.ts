@@ -1,16 +1,30 @@
 import { openai } from "@ai-sdk/openai";
-import { streamText } from "ai";
+import { streamText, streamObject, generateText } from "ai";
+import { languageAnalysisSchema } from "./schema";
+
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { topic }: { topic: string } = await req.json();
+  const { prompt }: { prompt: string } = await req.json();
 
-  const response = await streamText({
-    model: openai("gpt-4o-mini"),
+  // First, generate the Arabic text
+  const {text} = await generateText({
+    system: "You are a language expert. Generate a text for the given prompt that is optimized for learning in the language specified. Not too complex and use frequently used words.",
+    model: openai('gpt-4o-mini'),
+    prompt,
+  });
+
+  // Analyze the entire generated text
+  const analysisResult = await streamObject({
+    model: openai("gpt-4o"), 
+    schema: languageAnalysisSchema,
     messages: [
-      { role: "system", content: "You are an Arabic language expert. Generate a short text (3-5 sentences) about the given topic that is optimized for learning Arabic." },
-      { role: "user", content: `Generate a short Arabic text about: "${topic}"` }
+      { role: "system", content: "You are a language expert. Analyze the given text and provide detailed grammatical information for each sentence. Provide an array such that element represents a sentence. Make sure the tokenization is correct and does not split words." },
+      { role: "user", content: `Please analyze the following text: "${text}"` }
     ],
   });
 
-  return response.toTextStreamResponse()
+  return analysisResult.toTextStreamResponse();
+
+
 }

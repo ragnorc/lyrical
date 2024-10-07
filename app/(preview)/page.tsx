@@ -4,97 +4,60 @@
 "use client";
 
 import { experimental_useObject } from "ai/react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Inter, Lateef as ArabicFont, Jost } from "next/font/google";
 import { TopicInput } from "@/components/TopicInput";
 import { TokensContainer } from "@/components/TokensContainer";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { useTokenNavigation } from "@/hooks/useTokenNavigation";
-import { useGenerateSentences } from "@/hooks/useGenerateSentences";
-import { ArabicAnalysis, arabicAnalysisSchema } from "@/app/api/analyze/schema";
+import { languageAnalysisSchema } from "@/app/api/generate/schema";
 import { FaArrowLeft } from "react-icons/fa6";
 import { GradientButton } from "@/components/GradientButton";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
-const arabicFont = ArabicFont({
-  subsets: ["arabic"],
-  weight: "400",
-  variable: "--font-arabic",
-});
-const syne = Jost({
-  subsets: ["latin"],
-  variable: "--font-syne",
-});
-
-type RevealState =
-  | "arabic"
-  | "transliteration"
-  | "part_of_speech"
-  | "translation";
-
 export default function Home() {
   const [topic, setTopic] = useState<string>("");
-  const [sentences, setSentences] = useState<ArabicAnalysis["tokens"][]>([]);
-  const [showInput, setShowInput] = useState<boolean>(true);
 
   const {
     submit,
     isLoading: isLoadingAnalysis,
     object,
+    stop,
   } = experimental_useObject({
-    api: "/api/analyze",
-    schema: arabicAnalysisSchema,
-    onFinish({ object }) {
-      if (object != null) {
-        setSentences((prevSentences) => [
-          ...prevSentences,
-          object.analysis.tokens,
-        ]);
-      }
-    },
+    api: "/api/generate",
+    schema: languageAnalysisSchema,
     onError: (error) => {
       console.error("Error occurred:", error);
       toast.error("An error occurred. Please try again later!");
     },
   });
 
-  const { generateSentences, isLoading: isLoadingSentences } =
-    useGenerateSentences(submit);
+  const handleGenerateSentences = (topic: string) => {
+    submit({ prompt: topic });
+  };
 
-  useEffect(() => {
-    if (object?.analysis?.tokens?.length) {
-      setShowInput(false);
-    }
-  }, [object?.analysis]);
+  const tokens =
+    object?.analysis?.map((sentence) => sentence?.tokens || []) || [];
 
-  const allSentences = [
-    ...sentences,
-    isLoadingAnalysis
-      ? ((object?.analysis?.tokens || []) as ArabicAnalysis["tokens"])
-      : [],
-  ];
+  const hasTokens = tokens.length > 0;
 
-  const { focusedIndex, revealState } = useTokenNavigation(allSentences);
+  const { focusedIndex, revealState, cycleView, setFocusedIndex } =
+    useTokenNavigation(object?.analysis, object?.rtl);
 
   const handleBack = () => {
-    setSentences([]);
-    setShowInput(true);
     setTopic("");
+    stop();
   };
 
   return (
     <div
-      className={`${syne.variable} font-inter flex flex-col items-center justify-center min-h-screen bg-[#F5F5F5] dark:bg-zinc-900 p-4 relative overflow-hidden`}
+      className={`font-inter flex flex-col items-center justify-center min-h-screen bg-[#F5F5F5] dark:bg-zinc-900 p-4 relative overflow-hidden`}
     >
       <div className="absolute -bottom-[2%] -right-[10%] h-40 w-40 lg:-top-[10%] lg:h-96 lg:w-96">
         <div className="relative bottom-0 left-0 h-full w-full rounded-full bg-gradient-to-b from-blue-400/30 to-red-600/30 blur-[70px] filter" />
       </div>
       <div className="absolute top-10 left-10">
-        {!showInput && (
+        {hasTokens && (
           <GradientButton
             onClick={handleBack}
             icon={
@@ -108,16 +71,19 @@ export default function Home() {
       </div>
       <div className="relative z-10 w-full">
         <TopicInput
-          showInput={showInput}
+          showInput={!hasTokens || !topic}
           topic={topic}
           setTopic={setTopic}
-          isLoading={isLoadingSentences}
-          onSubmit={() => generateSentences(topic)}
+          isLoading={isLoadingAnalysis}
+          onSubmit={() => handleGenerateSentences(topic)}
         />
 
-        {allSentences.length > 0 && (
+        {tokens.length > 0 && (
           <TokensContainer
-            sentences={allSentences}
+            setFocusedIndex={setFocusedIndex}
+            rtl={object?.rtl}
+            cycleView={cycleView}
+            tokens={tokens}
             revealState={revealState}
             focusedIndex={focusedIndex}
           />

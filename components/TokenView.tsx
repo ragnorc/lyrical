@@ -1,12 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { ArabicAnalysis } from "@/app/api/analyze/schema";
-import { Lateef as ArabicFont, Inter } from "next/font/google";
-
-const arabicFont = ArabicFont({
-  subsets: ["arabic"],
-  weight: "400",
-  variable: "--font-arabic",
-});
+import { LanguageAnalysis } from "@/app/api/generate/schema";
+import { Inter } from "next/font/google";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -14,28 +8,32 @@ const inter = Inter({
 });
 
 interface TokenViewProps {
-  token: ArabicAnalysis["tokens"][0];
-  revealState: "arabic" | "transliteration" | "part_of_speech" | "translation";
+  token: LanguageAnalysis[0]["tokens"][0];
+  revealState:
+    | "original"
+    | "transliteration"
+    | "part_of_speech"
+    | "translation";
   isFocused: boolean;
 }
 
 export function TokenView({ token, revealState, isFocused }: TokenViewProps) {
   const getRevealContent = () => {
     switch (revealState) {
-      case "arabic":
-        return token.arabic;
+      case "original":
+        return token.original;
       case "transliteration":
-        return token.transliteration || "Loading...";
+        return token.transliteration;
       case "part_of_speech":
-        return token.part_of_speech || "Loading...";
+        return token.part_of_speech;
       case "translation":
-        return token.translation || "Loading...";
+        return token.translation;
     }
   };
 
   const getBadgeText = () => {
     switch (revealState) {
-      case "arabic":
+      case "original":
         return "";
       case "transliteration":
         return token.transliteration ? "TL" : "...";
@@ -46,13 +44,13 @@ export function TokenView({ token, revealState, isFocused }: TokenViewProps) {
     }
   };
 
-  const isArabic = revealState === "arabic";
+  const isOriginal = revealState === "original";
   const isLoading = !token[revealState];
-
+  const content = getRevealContent();
   return (
     <motion.div
       layout
-      className={`relative flex items-center px-2.5 h-[1.8rem] rounded-lg text-center overflow-hidden ${
+      className={`relative flex items-center px-2.5 h-[1.7rem] rounded-lg text-center overflow-hidden ${
         isFocused
           ? "bg-white text-black shadow-[0px_0px_1px_rgba(0,0,0,0.04),0px_1px_1px_rgba(0,0,0,0.04),0px_3px_3px_rgba(0,0,0,0.04),0px_6px_6px_rgba(0,0,0,0.04),0px_12px_12px_rgba(0,0,0,0.04),0px_24px_24px_rgba(0,0,0,0.04)]"
           : "bg-zinc-200 text-zinc-500"
@@ -64,10 +62,10 @@ export function TokenView({ token, revealState, isFocused }: TokenViewProps) {
       <AnimatePresence mode="wait">
         <AnimatedText
           key={revealState}
-          text={getRevealContent()}
+          text={content}
           className="inline-block whitespace-nowrap"
-          isArabic={isArabic}
-          badge={!isArabic ? getBadgeText() : undefined}
+          isOriginal={isOriginal}
+          badge={!isOriginal ? getBadgeText() : undefined}
         />
       </AnimatePresence>
     </motion.div>
@@ -77,20 +75,23 @@ export function TokenView({ token, revealState, isFocused }: TokenViewProps) {
 interface AnimatedTextProps {
   text: string;
   className?: string;
-  isArabic: boolean;
+  isOriginal: boolean;
   badge?: string;
 }
 
-function AnimatedText({ text, className, isArabic, badge }: AnimatedTextProps) {
+function AnimatedText({
+  text,
+  className,
+  isOriginal,
+  badge,
+}: AnimatedTextProps) {
   return (
     <motion.span
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.1 }}
-      className={`${className} ${
-        isArabic ? `${arabicFont.className}` : `${inter.className} text-sm`
-      }`}
+      className={`${className} ${inter.className} text-sm`}
     >
       {badge && (
         <motion.span
@@ -98,7 +99,7 @@ function AnimatedText({ text, className, isArabic, badge }: AnimatedTextProps) {
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.8 }}
           transition={{ duration: 0.2 }}
-          className="mr-2 -ml-1 px-2 py-0.5 text-xs bg-black text-white rounded-md inline-block"
+          className="mr-2 -ml-1.5 px-2 py-[0.18rem] text-xs bg-black text-white rounded-md inline-block"
         >
           {badge}
         </motion.span>

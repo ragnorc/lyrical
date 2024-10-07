@@ -1,30 +1,41 @@
 import { motion } from "framer-motion";
-import { ArabicAnalysis } from "@/app/api/analyze/schema";
+import { LanguageAnalysis } from "@/app/api/generate/schema";
 import { TokenView } from "@/components/TokenView";
 import { useRef, useEffect } from "react";
 
 interface TokensContainerProps {
-  sentences: ArabicAnalysis["tokens"][];
-  revealState: "arabic" | "transliteration" | "part_of_speech" | "translation";
+  tokens: LanguageAnalysis[0]["tokens"][];
+  revealState:
+    | "original"
+    | "transliteration"
+    | "part_of_speech"
+    | "translation";
   focusedIndex: number;
+  rtl: boolean | undefined;
+  cycleView: (direction: 1 | -1) => void;
+  setFocusedIndex: (index: number) => void;
 }
 
 export function TokensContainer({
-  sentences,
+  tokens,
   revealState,
   focusedIndex,
+  cycleView,
+  rtl = false,
+  setFocusedIndex,
 }: TokensContainerProps) {
-  const flatTokens = sentences.flatMap((sentence) =>
+  const flatTokens = tokens.flatMap((sentence) =>
     sentence.filter(
       (token): token is NonNullable<typeof token> =>
-        !!token && "arabic" in token
+        !!token && "original" in token
     )
   );
 
   const containerRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
-    const currentSentenceIndex = sentences.findIndex((sentence) =>
+    console.log(focusedIndex);
+    const currentSentenceIndex = tokens.findIndex((sentence) =>
       sentence.some(
         (token, index) => flatTokens.indexOf(token) === focusedIndex
       )
@@ -40,29 +51,36 @@ export function TokensContainer({
           const containerRect = container.getBoundingClientRect();
           const elementRect = focusedElement.getBoundingClientRect();
 
-          if (elementRect.right > containerRect.right - 100) {
+          const scrollThreshold = 300; // Increased threshold for earlier scrolling
+
+          if (elementRect.right > containerRect.right - scrollThreshold) {
             container.scrollTo({
               left:
                 container.scrollLeft +
                 elementRect.right -
                 containerRect.right +
-                100,
+                scrollThreshold,
               behavior: "smooth",
             });
-          } else if (elementRect.left < containerRect.left + 100) {
+          } else if (elementRect.left < containerRect.left + scrollThreshold) {
             container.scrollTo({
               left:
                 container.scrollLeft +
                 elementRect.left -
                 containerRect.left -
-                100,
+                scrollThreshold,
               behavior: "smooth",
             });
           }
         }
       }
     }
-  }, [focusedIndex, sentences, flatTokens]);
+  }, [focusedIndex, tokens, flatTokens]);
+
+  const handleTokenClick = (globalIndex: number) => {
+    setFocusedIndex(globalIndex);
+    cycleView(1);
+  };
 
   return (
     <motion.div
@@ -75,33 +93,40 @@ export function TokensContainer({
         className="w-full overflow-y-auto max-h-[60vh] py-4 px-2"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
-        <div className="flex flex-col items-end gap-1">
-          {sentences.map((sentence, sentenceIndex) => (
+        <div
+          className={`flex flex-col ${rtl ? "items-end" : "items-start"} gap-1`}
+        >
+          {tokens.map((sentence, sentenceIndex) => (
             <div
               key={sentenceIndex}
               ref={(el) => {
                 containerRefs.current[sentenceIndex] = el;
               }}
-              className="flex flex-row-reverse gap-2 overflow-x-auto justify-start w-full -m-5 p-5"
+              className={`flex ${
+                rtl ? "flex-row-reverse" : "flex-row"
+              } gap-1.5 overflow-x-auto justify-start w-full -m-5 p-5`}
               style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
               {sentence
                 .filter(
                   (token): token is NonNullable<typeof token> =>
-                    !!token && "arabic" in token
+                    !!token && "original" in token
                 )
                 .map((token, tokenIndex) => {
                   const globalIndex = flatTokens.findIndex((t) => t === token);
                   return (
                     <div
                       key={tokenIndex}
-                      className="mb-2 flex-shrink-0"
+                      className="mb-2 flex-shrink-0 cursor-pointer"
                       data-index={globalIndex}
+                      onClick={() => handleTokenClick(globalIndex)}
                     >
                       <TokenView
                         token={token}
                         revealState={
-                          globalIndex === focusedIndex ? revealState : "arabic"
+                          globalIndex === focusedIndex
+                            ? revealState
+                            : "original"
                         }
                         isFocused={globalIndex === focusedIndex}
                       />
