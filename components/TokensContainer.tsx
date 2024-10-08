@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
-import { LanguageAnalysis } from "@/app/api/generate/schema";
+import { PartialLanguageAnalysis } from "@/app/api/generate/schema";
 import { TokenView } from "@/components/TokenView";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useMemo } from "react";
 
 interface TokensContainerProps {
-  tokens: LanguageAnalysis[0]["tokens"][];
+  sentences: PartialLanguageAnalysis | undefined;
   revealState:
     | "original"
     | "transliteration"
@@ -17,65 +17,64 @@ interface TokensContainerProps {
 }
 
 export function TokensContainer({
-  tokens,
+  sentences,
   revealState,
   focusedIndex,
   cycleView,
   rtl = false,
   setFocusedIndex,
 }: TokensContainerProps) {
-  const flatTokens = tokens.flatMap((sentence) =>
-    sentence.filter(
-      (token): token is NonNullable<typeof token> =>
-        !!token && "original" in token
-    )
+  const flatTokens = useMemo(
+    () =>
+      sentences?.flatMap(
+        (sentence) =>
+          sentence?.tokens?.filter(
+            (token): token is NonNullable<typeof token> =>
+              !!token && "original" in token
+          ) ?? []
+      ) ?? [],
+    [sentences]
   );
 
   const containerRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
-    console.log(focusedIndex);
-    const currentSentenceIndex = tokens.findIndex((sentence) =>
-      sentence.some(
-        (token, index) => flatTokens.indexOf(token) === focusedIndex
+    const currentSentenceIndex = sentences?.findIndex((sentence) =>
+      sentence?.tokens?.some(
+        (token) => token && flatTokens.indexOf(token) === focusedIndex
       )
     );
 
-    if (currentSentenceIndex !== -1) {
+    if (currentSentenceIndex !== undefined && currentSentenceIndex !== -1) {
       const container = containerRefs.current[currentSentenceIndex];
-      if (container) {
-        const focusedElement = container.querySelector(
-          `[data-index="${focusedIndex}"]`
-        );
-        if (focusedElement) {
-          const containerRect = container.getBoundingClientRect();
-          const elementRect = focusedElement.getBoundingClientRect();
+      const focusedElement = container?.querySelector(
+        `[data-index="${focusedIndex}"]`
+      );
 
-          const scrollThreshold = 300; // Increased threshold for earlier scrolling
+      if (container && focusedElement) {
+        const containerRect = container.getBoundingClientRect();
+        const elementRect = focusedElement.getBoundingClientRect();
+        const scrollThreshold = 300;
 
-          if (elementRect.right > containerRect.right - scrollThreshold) {
-            container.scrollTo({
-              left:
-                container.scrollLeft +
-                elementRect.right -
-                containerRect.right +
-                scrollThreshold,
-              behavior: "smooth",
-            });
-          } else if (elementRect.left < containerRect.left + scrollThreshold) {
-            container.scrollTo({
-              left:
-                container.scrollLeft +
-                elementRect.left -
-                containerRect.left -
-                scrollThreshold,
-              behavior: "smooth",
-            });
-          }
+        const scrollLeft =
+          elementRect.right > containerRect.right - scrollThreshold
+            ? container.scrollLeft +
+              elementRect.right -
+              containerRect.right +
+              scrollThreshold
+            : elementRect.left < containerRect.left + scrollThreshold
+            ? container.scrollLeft +
+              elementRect.left -
+              containerRect.left -
+              scrollThreshold
+            : null;
+
+        if (scrollLeft !== null) {
+          container.scrollTo({ left: scrollLeft, behavior: "smooth" });
         }
       }
     }
-  }, [focusedIndex, tokens, flatTokens]);
+  }, [focusedIndex, sentences, flatTokens]);
 
   const handleTokenClick = (globalIndex: number) => {
     setFocusedIndex(globalIndex);
@@ -89,26 +88,22 @@ export function TokensContainer({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      <div
-        className="w-full overflow-y-auto max-h-[60vh] py-4 px-2"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-      >
+      <div className="w-full overflow-y-auto max-h-[60vh] py-4 px-2 scrollbar-none">
         <div
           className={`flex flex-col ${rtl ? "items-end" : "items-start"} gap-1`}
         >
-          {tokens.map((sentence, sentenceIndex) => (
+          {sentences?.map((sentence, sentenceIndex) => (
             <div
               key={sentenceIndex}
-              ref={(el) => {
-                containerRefs.current[sentenceIndex] = el;
+              ref={(el: HTMLDivElement | null) => {
+                if (el) containerRefs.current[sentenceIndex] = el;
               }}
               className={`flex ${
                 rtl ? "flex-row-reverse" : "flex-row"
-              } gap-1.5 overflow-x-auto justify-start w-full -m-5 p-5`}
-              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              } gap-1.5 overflow-x-auto justify-start w-full -m-5 p-5 scrollbar-none`}
             >
-              {sentence
-                .filter(
+              {sentence?.tokens
+                ?.filter(
                   (token): token is NonNullable<typeof token> =>
                     !!token && "original" in token
                 )

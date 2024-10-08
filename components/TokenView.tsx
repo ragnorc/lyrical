@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { LanguageAnalysis } from "@/app/api/generate/schema";
+import { PartialToken } from "@/app/api/generate/schema";
 import { Inter } from "next/font/google";
 
 const inter = Inter({
@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 interface TokenViewProps {
-  token: LanguageAnalysis[0]["tokens"][0];
+  token: PartialToken;
   revealState:
     | "original"
     | "transliteration"
@@ -62,7 +62,7 @@ export function TokenView({ token, revealState, isFocused }: TokenViewProps) {
       <AnimatePresence mode="wait">
         <AnimatedText
           key={revealState}
-          text={content}
+          text={content ?? ""}
           className="inline-block whitespace-nowrap"
           isOriginal={isOriginal}
           badge={!isOriginal ? getBadgeText() : undefined}

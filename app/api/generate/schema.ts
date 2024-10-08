@@ -29,3 +29,6 @@ export const languageAnalysisSchema = z.object({
 export type PartialLanguageAnalysis = DeepPartial<typeof languageAnalysisSchema>["analysis"];
 
 export type LanguageAnalysis = z.infer<typeof languageAnalysisSchema>["analysis"];
+
+// Define a type for partial token
+export type PartialToken = DeepPartial<LanguageAnalysis[number]['tokens'][number]>;

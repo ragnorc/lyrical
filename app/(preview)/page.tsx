@@ -6,7 +6,6 @@
 import { experimental_useObject } from "ai/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Inter, Lateef as ArabicFont, Jost } from "next/font/google";
 import { TopicInput } from "@/components/TopicInput";
 import { TokensContainer } from "@/components/TokensContainer";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
@@ -83,7 +82,7 @@ export default function Home() {
             setFocusedIndex={setFocusedIndex}
             rtl={object?.rtl}
             cycleView={cycleView}
-            tokens={tokens}
+            sentences={object?.analysis}
             revealState={revealState}
             focusedIndex={focusedIndex}
           />
