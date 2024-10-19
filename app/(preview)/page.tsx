@@ -27,7 +27,7 @@ export default function Home() {
     schema: languageAnalysisSchema,
     onError: (error) => {
       console.error("Error occurred:", error);
-      toast.error("An error occurred. Please try again later!");
+      toast.error(`An error occurred: ${error.message}`);
     },
   });
 

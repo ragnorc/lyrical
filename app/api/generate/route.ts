@@ -1,14 +1,33 @@
 import { openai } from "@ai-sdk/openai";
-import { streamText, streamObject, generateText } from "ai";
+import { streamObject, generateText } from "ai";
 import { languageAnalysisSchema } from "./schema";
+import {kv} from '@vercel/kv';
+import { Ratelimit } from '@upstash/ratelimit';
+import { NextRequest } from 'next/server';
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
-export async function POST(req: Request) {
+// Create Rate limit
+const ratelimit = new Ratelimit({
+  redis: kv,
+  limiter: Ratelimit.tokenBucket(30, '1 d', 30)
+});
+
+export async function POST(req: NextRequest) {
+  // Call ratelimit with request ip
+  const ip = req.ip ?? '127.0.0.1'
+
+  const {success} = await ratelimit.limit(ip);
+
+  // Block the request if unsuccessful
+  if (!success) {
+    return new Response('You have reached the maximum number of requests. Please try again in an hour.', { status: 429 });
+  }
+
   const { prompt }: { prompt: string } = await req.json();
 
-  // First, generate the Arabic text
-  const {text} = await generateText({
+  // First, generate the text
+  const { text } = await generateText({
     system: "You are a language expert. Generate a text for the given prompt that is optimized for learning in the language specified. Not too complex and use frequently used words.",
     model: openai('gpt-4o-mini'),
     prompt,
@@ -25,6 +44,4 @@ export async function POST(req: Request) {
   });
 
   return analysisResult.toTextStreamResponse();
-
-
 }
