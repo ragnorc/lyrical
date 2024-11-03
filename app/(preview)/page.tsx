@@ -16,6 +16,7 @@ import { GradientButton } from "@/components/GradientButton";
 
 export default function Home() {
   const [topic, setTopic] = useState<string>("");
+  const [showTokens, setShowTokens] = useState<boolean>(false);
 
   const {
     submit,
@@ -33,12 +34,13 @@ export default function Home() {
 
   const handleGenerateSentences = (topic: string) => {
     submit({ prompt: topic });
+    setShowTokens(true);
   };
 
   const tokens =
     object?.analysis?.map((sentence) => sentence?.tokens || []) || [];
 
-  const hasTokens = tokens.length > 0;
+  const hasTokens = tokens.length > 0 && showTokens;
 
   const { focusedIndex, revealState, cycleView, setFocusedIndex } =
     useTokenNavigation(object?.analysis, object?.rtl);
@@ -46,6 +48,7 @@ export default function Home() {
   const handleBack = () => {
     setTopic("");
     stop();
+    setShowTokens(false);
   };
 
   return (
@@ -77,7 +80,7 @@ export default function Home() {
           onSubmit={() => handleGenerateSentences(topic)}
         />
 
-        {tokens.length > 0 && (
+        {hasTokens && (
           <TokensContainer
             setFocusedIndex={setFocusedIndex}
             rtl={object?.rtl}
