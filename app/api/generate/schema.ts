@@ -7,7 +7,7 @@ export const languageAnalysisSchema = z.object({
   language: z.string().toLowerCase(),
   analysis: z.array(z.object({
     original_sentence: z.string(),
-    transliteration: z.string().optional(),
+    transliteration: z.string().optional().describe("The transliteration if the language uses non-latin characters."),
     translation: z.string(),
     tokens: z.array(z.object({
       original: z.string(),
