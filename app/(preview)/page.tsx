@@ -11,7 +11,7 @@ import { TokensContainer } from "@/components/TokensContainer";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { useTokenNavigation } from "@/hooks/useTokenNavigation";
 import { languageAnalysisSchema } from "@/app/api/generate/schema";
-import { FaArrowLeft } from "react-icons/fa6";
+import { FaArrowLeft, FaGithub, FaTwitter } from "react-icons/fa6";
 import { GradientButton } from "@/components/GradientButton";
 
 export default function Home() {
@@ -92,7 +92,28 @@ export default function Home() {
           />
         )}
 
-        <KeyboardShortcuts />
+        <div className="hidden md:block">
+          <KeyboardShortcuts />
+        </div>
+      </div>
+      <div className="absolute bottom-4 left-4 text-xs text-zinc-400 dark:text-zinc-300 flex items-center space-x-2">
+        <span>Made with ♥ by Ragnor</span>
+        <a
+          href="https://github.com/ragnorc/lyrical"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-gray-700 dark:hover:text-gray-300"
+        >
+          <FaGithub />
+        </a>
+        <a
+          href="https://twitter.com/ragnorco"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-gray-700 dark:hover:text-gray-300"
+        >
+          <FaTwitter />
+        </a>
       </div>
     </div>
   );
