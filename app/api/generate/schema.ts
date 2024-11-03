@@ -3,11 +3,11 @@ import { z } from "zod";
 
 // Define a new schema for language analysis
 export const languageAnalysisSchema = z.object({
-  rtl: z.boolean().optional(),
+  rtl: z.boolean().describe("Whether the language uses right-to-left characters."),
   language: z.string().toLowerCase(),
   analysis: z.array(z.object({
     original_sentence: z.string(),
-    transliteration: z.string().optional().describe("The transliteration if the language uses non-latin characters."),
+    transliteration: z.string().describe("The transliteration if the language uses non-latin characters."),
     translation: z.string(),
     tokens: z.array(z.object({
       original: z.string(),

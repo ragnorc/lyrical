@@ -1,7 +1,7 @@
 import { openai } from "@ai-sdk/openai";
-import { streamObject, generateText } from "ai";
+import { streamObject } from "ai";
 import { languageAnalysisSchema } from "./schema";
-import {kv} from '@vercel/kv';
+import { kv } from '@vercel/kv';
 import { Ratelimit } from '@upstash/ratelimit';
 import { NextRequest } from 'next/server';
 
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   // Call ratelimit with request ip
   const ip = req.ip ?? '127.0.0.1'
 
-  const {success} = await ratelimit.limit(ip);
+  const { success } = await ratelimit.limit(ip);
 
   // Block the request if unsuccessful
   if (!success) {
@@ -26,20 +26,13 @@ export async function POST(req: NextRequest) {
 
   const { prompt }: { prompt: string } = await req.json();
 
-  // First, generate the text
-  const { text } = await generateText({
-    system: "You are a language expert. Generate a text for the given prompt that is optimized for learning in the language specified. Not too complex and use frequently used words.",
-    model: openai('gpt-4o-mini'),
-    prompt,
-  });
-
-  // Analyze the entire generated text
+  // Generate and analyze the text in a single streamObject call
   const analysisResult = await streamObject({
-    model: openai("gpt-4o"), 
+    model: openai("gpt-4o-mini"),
     schema: languageAnalysisSchema,
     messages: [
-      { role: "system", content: "You are a language expert. Analyze the given text and provide detailed grammatical information for each sentence. Provide an array such that element represents a sentence. Make sure the tokenization is correct and does not split words." },
-      { role: "user", content: `Please analyze the following text: "${text}"` }
+      { role: "system", content: "You are a language expert. Generate a text with multiple sentences for the given prompt that is optimized for language learning. The text should use frequently used words. Then, analyze the generated text and provide detailed grammatical information for each sentence. Provide an array such that each element represents a sentence. The tokens are meaningful units of the language and may be multiple words whose joint translation may not be the sum of the translations of the individual words. Make sure the tokenization is correct and does not split words in the middle." },
+      { role: "user", content: prompt }
     ],
   });
 
