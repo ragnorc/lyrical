@@ -1,6 +1,7 @@
 import "./globals.css";
 import { Metadata } from "next";
 import { Toaster } from "sonner";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://lyrical.sh"),
@@ -18,7 +19,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <Toaster position="top-center" richColors />
-        {children}
+        <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
       </body>
     </html>
   );
