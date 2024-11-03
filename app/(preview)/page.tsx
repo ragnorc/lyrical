@@ -49,6 +49,7 @@ export default function Home() {
     setTopic("");
     stop();
     setShowTokens(false);
+    setFocusedIndex(0); // Reset the focused token
   };
 
   return (
