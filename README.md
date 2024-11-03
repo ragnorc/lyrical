@@ -42,7 +42,8 @@ To run Lyrical locally:
 
 1. Clone the repository
 2. Copy `.env.example` to `.env` and add the required API keys
-3. Run `bun install` to install dependencies
-4. Start the development server with `bun dev`
+3. Add your OpenAI API key to the `.env` file as `OPENAI_API_KEY=your_api_key_here`
+4. Run `bun install` to install dependencies
+5. Start the development server with `bun dev`
 
 I hope Lyrical can be a useful tool for language learners and welcome your contributions to improve it.
