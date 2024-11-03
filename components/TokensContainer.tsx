@@ -51,27 +51,12 @@ export function TokensContainer({
         `[data-index="${focusedIndex}"]`
       );
 
-      if (container && focusedElement) {
-        const containerRect = container.getBoundingClientRect();
-        const elementRect = focusedElement.getBoundingClientRect();
-        const scrollThreshold = 300;
-
-        const scrollLeft =
-          elementRect.right > containerRect.right - scrollThreshold
-            ? container.scrollLeft +
-              elementRect.right -
-              containerRect.right +
-              scrollThreshold
-            : elementRect.left < containerRect.left + scrollThreshold
-            ? container.scrollLeft +
-              elementRect.left -
-              containerRect.left -
-              scrollThreshold
-            : null;
-
-        if (scrollLeft !== null) {
-          container.scrollTo({ left: scrollLeft, behavior: "smooth" });
-        }
+      if (focusedElement) {
+        focusedElement.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+          inline: "nearest",
+        });
       }
     }
   }, [focusedIndex, sentences, flatTokens]);
@@ -88,19 +73,17 @@ export function TokensContainer({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      <div className="w-full overflow-y-auto max-h-[60vh] py-4 px-2 scrollbar-none">
-        <div
-          className={`flex flex-col ${rtl ? "items-end" : "items-start"} gap-1`}
-        >
+      <div className="w-full max-h-[60vh] py-4 px-2 overflow-y-auto">
+        <div className={`flex flex-col ${rtl ? "items-end" : "items-start"}`}>
           {sentences?.map((sentence, sentenceIndex) => (
             <div
               key={sentenceIndex}
               ref={(el: HTMLDivElement | null) => {
                 if (el) containerRefs.current[sentenceIndex] = el;
               }}
-              className={`flex ${
+              className={`flex flex-wrap ${
                 rtl ? "flex-row-reverse" : "flex-row"
-              } gap-1.5 overflow-x-auto justify-start w-full -m-5 p-5 scrollbar-none`}
+              } gap-x-1.5 w-full`}
             >
               {sentence?.tokens
                 ?.filter(
@@ -112,7 +95,7 @@ export function TokensContainer({
                   return (
                     <div
                       key={tokenIndex}
-                      className="mb-2 flex-shrink-0 cursor-pointer"
+                      className="mb-2 cursor-pointer"
                       data-index={globalIndex}
                       onClick={() => handleTokenClick(globalIndex)}
                     >
