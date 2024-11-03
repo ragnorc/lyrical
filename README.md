@@ -1,40 +1,48 @@
-# Vercel AI SDK useObject Example
+# Lyrical: Language Learning Through Reading
 
-This example demonstrates how to use the [Vercel AI SDK](https://sdk.vercel.ai/docs) with [Next.js](https://nextjs.org/) with the `useObject` hook to stream structured object generation to the client with the AI provider of your choice.
+Lyrical is an application I've developed to improve language learning through interactive reading. It uses AI to generate texts and provide grammatical analysis, helping users learn new languages in context.
 
-## Deploy your own
+## Purpose
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fai-sdk-preview-use-object&env=OPENAI_API_KEY&envDescription=API%20keys%20needed%20for%20application&envLink=platform.openai.com)
+Lyrical addresses some common challenges in language learning:
 
-## How to use
+1. Lack of engaging, level-appropriate reading material
+2. Difficulty understanding grammar in context
+3. Limited opportunities for vocabulary acquisition in real-world usage
 
-Run [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app) with [npm](https://docs.npmjs.com/cli/init), [Yarn](https://yarnpkg.com/lang/en/docs/cli/create/), or [pnpm](https://pnpm.io) to bootstrap the example:
+By presenting AI-generated texts with detailed word-by-word breakdowns, Lyrical allows learners to explore language structures and expand their vocabulary while reading about topics that interest them.
 
-```bash
-npx create-next-app --example https://github.com/vercel-labs/ai-sdk-preview-use-object ai-sdk-preview-use-object-example
-```
+## How It Works
 
-```bash
-yarn create next-app --example https://github.com/vercel-labs/ai-sdk-preview-use-object ai-sdk-preview-use-object-example
-```
+The app uses Next.js and the Vercel AI SDK to generate texts and analyze them grammatically. Users can interact with the content, exploring each sentence and word in detail.
 
-```bash
-pnpm create next-app --example https://github.com/vercel-labs/ai-sdk-preview-use-object ai-sdk-preview-use-object-example
-```
+## Contributing
 
-To run the example locally you need to:
+I welcome contributions to Lyrical. Here's how you can help:
 
-1. Sign up for accounts with the AI providers you want to use (e.g., OpenAI, Anthropic).
-2. Obtain API keys for each provider.
-3. Set the required environment variables as shown in the `.env.example` file, but in a new file called `.env`.
-4. `npm install` to install the required dependencies.
-5. `npm run dev` to launch the development server.
+1. Fork the repository and create your branch from `main`
+2. Install dependencies with `bun install`
+3. Make your changes and test them
+4. Ensure your code follows the existing style
+5. Create a pull request describing your changes
 
+## Future Plans
 
-## Learn More
+I'm considering several additions to Lyrical:
 
-To learn more about Vercel AI SDK or Next.js take a look at the following resources:
+1. Visualizations of grammatical structures
+2. A system to track and reintroduce previously encountered words
+3. Integration of GPT-4's audio capabilities (gpt-4-audio-preview)
 
-- [Vercel AI SDK docs](https://sdk.vercel.ai/docs)
-- [Vercel AI Playground](https://play.vercel.ai)
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+The audio integration is particularly exciting as it will enable text-to-speech and speech-to-text functionalities. This addition will be crucial for improving pronunciation and listening skills, making Lyrical a more comprehensive language learning tool.
+
+## Getting Started
+
+To run Lyrical locally:
+
+1. Clone the repository
+2. Copy `.env.example` to `.env` and add the required API keys
+3. Run `bun install` to install dependencies
+4. Start the development server with `bun dev`
+
+I hope Lyrical can be a useful tool for language learners and welcome your contributions to improve it.
