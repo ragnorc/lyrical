@@ -46,7 +46,7 @@ export function TopicInput({
             <input
               name="topic"
               className="font-inter text-sm w-full bg-[#e9e9e9] border-[0.5px] border-zinc-300 dark:bg-zinc-800 rounded-full px-4 py-3 pr-12 outline-none text-black dark:text-white"
-              placeholder="Enter a topic..."
+              placeholder="Enter a topic and language..."
               value={topic}
               onChange={(event) => setTopic(event.target.value)}
               disabled={isLoading}
