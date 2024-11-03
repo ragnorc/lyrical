@@ -1,21 +1,23 @@
 import { ReactNode } from "react";
 
 interface GradientButtonProps {
-  onClick: () => void;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
   disabled?: boolean;
   icon: ReactNode;
   className?: string;
+  type?: "button" | "submit" | "reset";
 }
 
 export function GradientButton({
   onClick,
   disabled = false,
   icon,
+  type = "button",
   className = "",
 }: GradientButtonProps) {
   return (
     <button
-      type="button"
+      type={type}
       onClick={onClick}
       disabled={disabled}
       className={`group relative bg-gradient-to-b h-9 w-9 rounded-full from-neutral-700 to-neutral-400 p-[0.5px] shadow-sm shadow-neutral-400 active:shadow-sm active:scale-[97%] active:translate-y-[0.5px] items-center justify-center flex transition duration-75 ${className}`}

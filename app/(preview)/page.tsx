@@ -4,7 +4,7 @@
 "use client";
 
 import { experimental_useObject } from "ai/react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { toast } from "sonner";
 import { TopicInput } from "@/components/TopicInput";
 import { TokensContainer } from "@/components/TokensContainer";
@@ -13,9 +13,10 @@ import { useTokenNavigation } from "@/hooks/useTokenNavigation";
 import { languageAnalysisSchema } from "@/app/api/generate/schema";
 import { FaArrowLeft, FaGithub, FaTwitter } from "react-icons/fa6";
 import { GradientButton } from "@/components/GradientButton";
+import { useQueryState } from "nuqs";
 
 export default function Home() {
-  const [topic, setTopic] = useState<string>("");
+  const [topic, setTopic] = useQueryState("topic");
   const [showTokens, setShowTokens] = useState<boolean>(false);
 
   const {
@@ -32,9 +33,11 @@ export default function Home() {
     },
   });
 
-  const handleGenerateSentences = (topic: string) => {
-    submit({ prompt: topic });
-    setShowTokens(true);
+  const handleGenerateSentences = () => {
+    if (topic) {
+      submit({ prompt: topic });
+      setShowTokens(true);
+    }
   };
 
   const tokens =
@@ -45,12 +48,12 @@ export default function Home() {
   const { focusedIndex, revealState, cycleView, setFocusedIndex } =
     useTokenNavigation(object?.analysis, object?.rtl);
 
-  const handleBack = () => {
-    setTopic("");
+  const handleBack = useCallback(() => {
+    setTopic(null);
     stop();
     setShowTokens(false);
     setFocusedIndex(0); // Reset the focused token
-  };
+  }, [setTopic, stop, setFocusedIndex]);
 
   return (
     <div
@@ -75,10 +78,10 @@ export default function Home() {
       <div className="relative z-10 w-full">
         <TopicInput
           showInput={!hasTokens || !topic}
-          topic={topic}
+          topic={topic || ""}
           setTopic={setTopic}
           isLoading={isLoadingAnalysis}
-          onSubmit={() => handleGenerateSentences(topic)}
+          onSubmit={handleGenerateSentences}
         />
 
         {hasTokens && (

@@ -25,6 +25,14 @@ export function TopicInput({
   isLoading,
   onSubmit,
 }: TopicInputProps) {
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (topic.trim()) {
+      setTopic(topic.trim());
+      onSubmit();
+    }
+  };
+
   return (
     <AnimatePresence>
       {showInput && (
@@ -32,12 +40,7 @@ export function TopicInput({
           initial={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           className="w-full mb-8 mx-auto relative flex flex-col items-center"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (topic.trim()) {
-              onSubmit();
-            }
-          }}
+          onSubmit={handleSubmit}
         >
           <div className="relative w-full sm:w-2/3 md:w-1/2 lg:w-1/3 mx-auto">
             <input
@@ -50,7 +53,8 @@ export function TopicInput({
             />
             <div className="absolute right-1 top-1/2 transform -translate-y-1/2">
               <GradientButton
-                onClick={onSubmit}
+                type="submit"
+                className="cursor-pointer"
                 disabled={isLoading}
                 icon={
                   <>
