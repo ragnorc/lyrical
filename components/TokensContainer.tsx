@@ -12,7 +12,7 @@ interface TokensContainerProps {
     | "translation";
   focusedIndex: number;
   rtl: boolean | undefined;
-  cycleView: (direction: 1 | -1) => void;
+  cycleView: (direction: 1 | -1, reset?: boolean) => void;
   setFocusedIndex: (index: number) => void;
 }
 
@@ -30,10 +30,10 @@ export function TokensContainer({
         (sentence) =>
           sentence?.tokens?.filter(
             (token): token is NonNullable<typeof token> =>
-              !!token && "original" in token
-          ) ?? []
+              !!token && "original" in token,
+          ) ?? [],
       ) ?? [],
-    [sentences]
+    [sentences],
   );
 
   const containerRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -41,14 +41,14 @@ export function TokensContainer({
   useEffect(() => {
     const currentSentenceIndex = sentences?.findIndex((sentence) =>
       sentence?.tokens?.some(
-        (token) => token && flatTokens.indexOf(token) === focusedIndex
-      )
+        (token) => token && flatTokens.indexOf(token) === focusedIndex,
+      ),
     );
 
     if (currentSentenceIndex !== undefined && currentSentenceIndex !== -1) {
       const container = containerRefs.current[currentSentenceIndex];
       const focusedElement = container?.querySelector(
-        `[data-index="${focusedIndex}"]`
+        `[data-index="${focusedIndex}"]`,
       );
 
       if (focusedElement) {
@@ -62,8 +62,14 @@ export function TokensContainer({
   }, [focusedIndex, sentences, flatTokens]);
 
   const handleTokenClick = (globalIndex: number) => {
-    setFocusedIndex(globalIndex);
-    cycleView(1);
+    if (globalIndex === focusedIndex) {
+      // If clicking the same token, just cycle the view
+      cycleView(1);
+    } else {
+      // For a new token, reset view state and then set focus
+      cycleView(1, true);
+      setFocusedIndex(globalIndex);
+    }
   };
 
   return (
@@ -88,7 +94,7 @@ export function TokensContainer({
               {sentence?.tokens
                 ?.filter(
                   (token): token is NonNullable<typeof token> =>
-                    !!token && "original" in token
+                    !!token && "original" in token,
                 )
                 .map((token, tokenIndex) => {
                   const globalIndex = flatTokens.findIndex((t) => t === token);
