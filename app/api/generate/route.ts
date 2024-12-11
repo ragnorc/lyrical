@@ -20,12 +20,12 @@ export async function POST(req: NextRequest) {
   const { success } = await ratelimit.limit(ip);
 
   // Block the request if unsuccessful
-  if (!success) {
-    return new Response(
-      "You have reached the maximum number of requests. Please try again in an hour.",
-      { status: 429 },
-    );
-  }
+  // if (!success) {
+  //   return new Response(
+  //     "You have reached the maximum number of requests. Please try again in an hour.",
+  //     { status: 429 },
+  //   );
+  // }
 
   const { prompt }: { prompt: string } = await req.json();
 
